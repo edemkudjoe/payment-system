@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin — Event Payment</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <span class="navbar-brand">Event Payment</span>
+    <div class="navbar-user">
+      <span id="staffName"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container" style="padding-top: 1.5rem; padding-bottom: 2rem;">
+
+    <!-- Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <button class="btn btn-primary w-auto tab-btn" data-tab="summary">Summary</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="transactions">Transactions</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="vendors">Vendors</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="staff">Staff</button>
+    </div>
+
+    <!-- Summary Tab -->
+    <div id="tab-summary" class="tab-content">
+      <div class="grid-3" id="statCards" style="margin-bottom: 1.5rem;">
+        <div class="stat-card">
+          <div class="stat-label">Total Topped Up</div>
+          <div class="stat-value" id="statToppedUp">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Spent</div>
+          <div class="stat-value" id="statSpent">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Refunded</div>
+          <div class="stat-value" id="statRefunded">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Donated</div>
+          <div class="stat-value" id="statDonated">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Remaining Balances</div>
+          <div class="stat-value" id="statRemaining">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Attendees</div>
+          <div class="stat-value" id="statAttendees">—</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Vendor Breakdown</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Vendor</th>
+                <th>Total Received</th>
+                <th>Current Balance</th>
+              </tr>
+            </thead>
+            <tbody id="vendorBreakdown">
+              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Transactions Tab -->
+    <div id="tab-transactions" class="tab-content" style="display:none;">
+      <div class="card" style="margin-bottom: 1rem;">
+        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+            <label>Type</label>
+            <select id="filterType">
+              <option value="">All</option>
+              <option value="top_up">Top Up</option>
+              <option value="payment">Payment</option>
+              <option value="refund">Refund</option>
+              <option value="donation">Donation</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+            <label>From</label>
+            <input type="date" id="filterFrom" />
+          </div>
+          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+            <label>To</label>
+            <input type="date" id="filterTo" />
+          </div>
+          <button class="btn btn-primary w-auto" id="filterBtn">Filter</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Attendee</th>
+                <th>Vendor</th>
+                <th>Staff</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="transactionLog">
+              <tr><td colspan="6" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vendors Tab -->
+    <div id="tab-vendors" class="tab-content" style="display:none;">
+      <div class="card" style="margin-bottom: 1rem;">
+        <div class="card-title">Register Vendor</div>
+        <div id="vendorAlert" class="alert alert-error"></div>
+        <div class="form-group">
+          <label>Vendor Name</label>
+          <input type="text" id="vendorName" placeholder="e.g. Jollof Station" />
+        </div>
+        <div class="form-group">
+          <label>Description (optional)</label>
+          <input type="text" id="vendorDesc" placeholder="e.g. Food & Drinks" />
+        </div>
+        <button class="btn btn-primary" id="addVendorBtn">Add Vendor</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Vendors</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Description</th>
+                <th>Balance</th>
+              </tr>
+            </thead>
+            <tbody id="vendorList">
+              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Staff Tab -->
+    <div id="tab-staff" class="tab-content" style="display:none;">
+      <div class="card" style="margin-bottom: 1rem;">
+        <div class="card-title">Register Staff</div>
+        <div id="staffAlert" class="alert alert-error"></div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Name</label>
+            <input type="text" id="staffNameInput" placeholder="Full name" />
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <input type="text" id="staffUsername" placeholder="Username" />
+          </div>
+          <div class="form-group">
+            <label>Role</label>
+            <select id="staffRole">
+              <option value="cashier">Cashier</option>
+              <option value="manager">Manager</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>PIN</label>
+            <input type="password" id="staffPin" placeholder="••••" maxlength="6" />
+          </div>
+        </div>
+        <button class="btn btn-primary" id="addStaffBtn">Add Staff</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">Staff Members</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Username</th>
+                <th>Role</th>
+              </tr>
+            </thead>
+            <tbody id="staffList">
+              <tr><td colspan="3" class="text-muted">Loading...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { authenticate } from '../_middleware/auth.js';
+import { authenticate } from '../../_middleware/auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
