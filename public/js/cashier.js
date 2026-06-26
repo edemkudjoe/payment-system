@@ -9,7 +9,28 @@ document.getElementById('logoutBtn').addEventListener('click', logout);
 
 const { event_id } = getSession();
 
-// --- Tabs ---
+
+// --- Scanners ---
+let topupScanner = null;
+let exitScanner = null;
+
+function initScanner(elementId, onScan) {
+  const scanner = new Html5Qrcode(elementId);
+  scanner.start(
+    { facingMode: 'environment' },
+    { fps: 10, qrbox: { width: 250, height: 250 } },
+    (decodedText) => {
+      scanner.pause();
+      onScan(decodedText);
+    },
+    () => {}
+  ).catch(() => {
+    document.getElementById(elementId).style.display = 'none';
+  });
+  return scanner;
+}
+
+// Init scanners when tabs are clicked
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => {
@@ -18,6 +39,21 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     btn.className = 'btn btn-primary w-auto tab-btn';
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
     document.getElementById(`tab-${btn.dataset.tab}`).style.display = 'block';
+
+    // Start scanner for the active tab
+    if (btn.dataset.tab === 'topup' && !topupScanner) {
+      topupScanner = initScanner('topupQrScanner', (decodedText) => {
+        document.getElementById('topupQrId').value = decodedText;
+        lookupTopupAttendee(decodedText);
+      });
+    }
+
+    if (btn.dataset.tab === 'exit' && !exitScanner) {
+      exitScanner = initScanner('exitQrScanner', (decodedText) => {
+        document.getElementById('exitQrId').value = decodedText;
+        lookupExitAttendee(decodedText);
+      });
+    }
   });
 });
 
@@ -67,12 +103,8 @@ document.getElementById('printBtn').addEventListener('click', () => {
 // --- Top Up ---
 let topupAttendeeId = null;
 
-document.getElementById('lookupBtn').addEventListener('click', async () => {
-  const qr_code_id = document.getElementById('topupQrId').value.trim();
-  if (!qr_code_id) return showAlert('topupAlert', 'Enter a QR code ID.');
-
+async function lookupTopupAttendee(qr_code_id) {
   const { ok, data } = await apiFetch(`/attendees/qr/${qr_code_id}`);
-
   if (!ok) return showAlert('topupAlert', data.error || 'Attendee not found.');
 
   topupAttendeeId = data.id;
@@ -80,11 +112,16 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
   document.getElementById('topupAttendeeId').textContent = `ID: ${data.id}`;
   document.getElementById('topupBalance').textContent = `₵${data.balance}`;
   document.getElementById('topupAttendeeInfo').style.display = 'block';
+}
+
+document.getElementById('lookupBtn').addEventListener('click', () => {
+  const qr_code_id = document.getElementById('topupQrId').value.trim();
+  if (!qr_code_id) return showAlert('topupAlert', 'Enter a QR code ID.');
+  lookupTopupAttendee(qr_code_id);
 });
 
 document.getElementById('topupBtn').addEventListener('click', async () => {
   const amount = parseInt(document.getElementById('topupAmount').value);
-
   if (!amount || amount <= 0) return showAlert('topupAlert', 'Enter a valid amount.');
   if (!topupAttendeeId) return showAlert('topupAlert', 'Look up an attendee first.');
 
@@ -104,18 +141,15 @@ document.getElementById('topupBtn').addEventListener('click', async () => {
 
   document.getElementById('topupBalance').textContent = `₵${data.new_balance}`;
   document.getElementById('topupAmount').value = '';
+  if (topupScanner) topupScanner.resume();
   showAlert('topupAlert', `₵${amount} topped up successfully.`, 'success');
 });
 
 // --- Refund / Donate ---
 let exitAttendeeId = null;
 
-document.getElementById('exitLookupBtn').addEventListener('click', async () => {
-  const qr_code_id = document.getElementById('exitQrId').value.trim();
-  if (!qr_code_id) return showAlert('exitAlert', 'Enter a QR code ID.');
-
-  const { ok, data } = await apiFetch(`/attendees/${qr_code_id}`);
-
+async function lookupExitAttendee(qr_code_id) {
+  const { ok, data } = await apiFetch(`/attendees/qr/${qr_code_id}`);
   if (!ok) return showAlert('exitAlert', data.error || 'Attendee not found.');
 
   exitAttendeeId = data.id;
@@ -123,6 +157,12 @@ document.getElementById('exitLookupBtn').addEventListener('click', async () => {
   document.getElementById('exitAttendeeIdDisplay').textContent = `ID: ${data.id}`;
   document.getElementById('exitBalance').textContent = `₵${data.balance}`;
   document.getElementById('exitAttendeeInfo').style.display = 'block';
+}
+
+document.getElementById('exitLookupBtn').addEventListener('click', () => {
+  const qr_code_id = document.getElementById('exitQrId').value.trim();
+  if (!qr_code_id) return showAlert('exitAlert', 'Enter a QR code ID.');
+  lookupExitAttendee(qr_code_id);
 });
 
 async function processExit(type) {
@@ -131,22 +171,22 @@ async function processExit(type) {
   const balance = document.getElementById('exitBalance').textContent;
   if (balance === '₵0') return showAlert('exitAlert', 'No tokens to process.');
 
-  const action = type === 'refund' ? 'refund' : 'donate';
-  const confirmed = confirm(`Are you sure you want to ${action} all tokens?`);
+  const confirmed = confirm(`Are you sure you want to ${type} all tokens?`);
   if (!confirmed) return;
 
-  const { ok, data } = await apiFetch(`/attendees/${exitAttendeeId}/${action}`, {
+  const { ok, data } = await apiFetch(`/attendees/${exitAttendeeId}/${type}`, {
     method: 'POST'
   });
 
-  if (!ok) return showAlert('exitAlert', data.error || `${action} failed.`);
+  if (!ok) return showAlert('exitAlert', data.error || `${type} failed.`);
 
   document.getElementById('exitBalance').textContent = '₵0';
   document.getElementById('exitAttendeeInfo').style.display = 'none';
   document.getElementById('exitQrId').value = '';
   exitAttendeeId = null;
+  if (exitScanner) exitScanner.resume();
 
-  showAlert('exitAlert', `${data.amount} tokens ${action}ed successfully.`, 'success');
+  showAlert('exitAlert', `${data.amount} tokens ${type}ed successfully.`, 'success');
 }
 
 document.getElementById('refundBtn').addEventListener('click', () => processExit('refund'));
