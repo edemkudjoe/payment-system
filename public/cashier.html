@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cashier — Event Payment</title>
   <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
 </head>
 <body>
   <nav class="navbar">
@@ -51,18 +52,54 @@
     </div>
 
     <!-- Top Up Tab -->
-    <div id="tab-topup" class="tab-content" style="display:none;">
-      <div class="card" style="max-width: 480px;">
-        <div class="card-title">Top Up Tokens</div>
-        <div id="topupAlert" class="alert alert-error"></div>
+    <!-- Top Up Tab -->
+<div id="tab-topup" class="tab-content" style="display:none;">
+  <div class="card" style="max-width: 480px;">
+    <div class="card-title">Top Up Tokens</div>
+    <div id="topupAlert" class="alert alert-error"></div>
 
-        <div class="form-group">
-          <label>QR Code ID</label>
-          <input type="text" id="topupQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+    <div class="form-group">
+      <label>Scan Attendee QR Card</label>
+      <div id="topupQrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+      <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+    </div>
+
+    <div class="form-group">
+      <label>QR Code ID</label>
+      <input type="text" id="topupQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+    </div>
+
+    <button class="btn btn-outline" id="lookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
+
+    <!-- Attendee Info -->
+    <div id="topupAttendeeInfo" style="display:none;">
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 600;" id="topupAttendeeName">—</div>
+            <div class="text-muted" id="topupAttendeeId" style="font-size: 0.8rem;"></div>
+          </div>
+          <div style="text-align: right;">
+            <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+            <div style="font-weight: 700; font-size: 1.2rem;" id="topupBalance">—</div>
+          </div>
         </div>
+      </div>
 
-        <button class="btn btn-outline" id="lookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
+      <div class="form-group">
+        <label>Amount (₵)</label>
+        <input type="number" id="topupAmount" placeholder="e.g. 50" min="1" />
+      </div>
 
+      <button class="btn btn-primary" id="topupBtn">Top Up</button>
+    </div>
+  </div>
+</div>
         <!-- Attendee Info -->
         <div id="topupAttendeeInfo" style="display:none;">
           <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
@@ -89,18 +126,52 @@
     </div>
 
     <!-- Refund / Donate Tab -->
-    <div id="tab-exit" class="tab-content" style="display:none;">
-      <div class="card" style="max-width: 480px;">
-        <div class="card-title">Refund / Donate Tokens</div>
-        <div id="exitAlert" class="alert alert-error"></div>
+    <!-- Refund / Donate Tab -->
+<div id="tab-exit" class="tab-content" style="display:none;">
+  <div class="card" style="max-width: 480px;">
+    <div class="card-title">Refund / Donate Tokens</div>
+    <div id="exitAlert" class="alert alert-error"></div>
 
-        <div class="form-group">
-          <label>QR Code ID</label>
-          <input type="text" id="exitQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+    <div class="form-group">
+      <label>Scan Attendee QR Card</label>
+      <div id="exitQrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+    </div>
+
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+      <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+    </div>
+
+    <div class="form-group">
+      <label>QR Code ID</label>
+      <input type="text" id="exitQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+    </div>
+
+    <button class="btn btn-outline" id="exitLookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
+
+    <!-- Attendee Info -->
+    <div id="exitAttendeeInfo" style="display:none;">
+      <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+        <div style="display: flex; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 600;" id="exitAttendeeName">—</div>
+            <div class="text-muted" id="exitAttendeeIdDisplay" style="font-size: 0.8rem;"></div>
+          </div>
+          <div style="text-align: right;">
+            <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+            <div style="font-weight: 700; font-size: 1.2rem;" id="exitBalance">—</div>
+          </div>
         </div>
+      </div>
 
-        <button class="btn btn-outline" id="exitLookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
-
+      <div style="display: flex; gap: 0.75rem;">
+        <button class="btn btn-outline" id="refundBtn">Refund Tokens</button>
+        <button class="btn btn-danger" id="donateBtn">Donate Tokens</button>
+      </div>
+    </div>
+  </div>
+</div>
         <!-- Attendee Info -->
         <div id="exitAttendeeInfo" style="display:none;">
           <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
