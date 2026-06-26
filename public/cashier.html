@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cashier — Event Payment</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <nav class="navbar">
+    <span class="navbar-brand">Event Payment</span>
+    <div class="navbar-user">
+      <span id="staffName"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container" style="padding-top: 1.5rem; padding-bottom: 2rem;">
+
+    <!-- Tabs -->
+    <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+      <button class="btn btn-primary w-auto tab-btn" data-tab="register">Register Attendee</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="topup">Top Up</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="exit">Refund / Donate</button>
+    </div>
+
+    <!-- Register Attendee Tab -->
+    <div id="tab-register" class="tab-content">
+      <div class="card" style="max-width: 480px;">
+        <div class="card-title">Register New Attendee</div>
+        <div id="registerAlert" class="alert alert-error"></div>
+
+        <div class="form-group">
+          <label>Name (optional)</label>
+          <input type="text" id="attendeeName" placeholder="Attendee full name" />
+        </div>
+
+        <button class="btn btn-primary" id="registerBtn">Register & Generate QR</button>
+
+        <!-- QR Result -->
+        <div id="qrResult" style="display:none; margin-top: 1.5rem; text-align: center;">
+          <hr class="divider" />
+          <p class="text-muted" style="margin-bottom: 0.75rem;">QR Card Generated</p>
+          <img id="qrImage" src="" alt="QR Code" style="width: 200px; height: 200px;" />
+          <p style="margin-top: 0.5rem; font-size: 0.8rem; color: var(--muted);" id="qrCodeId"></p>
+          <button class="btn btn-outline mt-2" id="printBtn" style="width: auto; padding: 0.5rem 1.5rem;">
+            Print QR
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Up Tab -->
+    <div id="tab-topup" class="tab-content" style="display:none;">
+      <div class="card" style="max-width: 480px;">
+        <div class="card-title">Top Up Tokens</div>
+        <div id="topupAlert" class="alert alert-error"></div>
+
+        <div class="form-group">
+          <label>QR Code ID</label>
+          <input type="text" id="topupQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+        </div>
+
+        <button class="btn btn-outline" id="lookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
+
+        <!-- Attendee Info -->
+        <div id="topupAttendeeInfo" style="display:none;">
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <div>
+                <div style="font-weight: 600;" id="topupAttendeeName">—</div>
+                <div class="text-muted" id="topupAttendeeId" style="font-size: 0.8rem;"></div>
+              </div>
+              <div style="text-align: right;">
+                <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+                <div style="font-weight: 700; font-size: 1.2rem;" id="topupBalance">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Amount (₵)</label>
+            <input type="number" id="topupAmount" placeholder="e.g. 50" min="1" />
+          </div>
+
+          <button class="btn btn-primary" id="topupBtn">Top Up</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund / Donate Tab -->
+    <div id="tab-exit" class="tab-content" style="display:none;">
+      <div class="card" style="max-width: 480px;">
+        <div class="card-title">Refund / Donate Tokens</div>
+        <div id="exitAlert" class="alert alert-error"></div>
+
+        <div class="form-group">
+          <label>QR Code ID</label>
+          <input type="text" id="exitQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+        </div>
+
+        <button class="btn btn-outline" id="exitLookupBtn" style="margin-bottom: 1rem;">Look Up Attendee</button>
+
+        <!-- Attendee Info -->
+        <div id="exitAttendeeInfo" style="display:none;">
+          <div style="background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; justify-content: space-between;">
+              <div>
+                <div style="font-weight: 600;" id="exitAttendeeName">—</div>
+                <div class="text-muted" id="exitAttendeeIdDisplay" style="font-size: 0.8rem;"></div>
+              </div>
+              <div style="text-align: right;">
+                <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+                <div style="font-weight: 700; font-size: 1.2rem;" id="exitBalance">—</div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 0.75rem;">
+            <button class="btn btn-outline" id="refundBtn">Refund Tokens</button>
+            <button class="btn btn-danger" id="donateBtn">Donate Tokens</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="/js/cashier.js"></script>
+</body>
+</html>

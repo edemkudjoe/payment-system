@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vendor — Event Payment</title>
+  <link rel="stylesheet" href="/css/style.css" />
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+</head>
+<body>
+  <nav class="navbar">
+    <span class="navbar-brand">Event Payment</span>
+    <div class="navbar-user">
+      <span id="vendorName"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </nav>
+
+  <div class="container" style="padding-top: 1.5rem; padding-bottom: 2rem;">
+
+    <!-- Vendor Login -->
+    <div id="loginSection">
+      <div class="card" style="max-width: 420px; margin: 0 auto;">
+        <div class="card-title">Vendor Login</div>
+        <div id="loginAlert" class="alert alert-error"></div>
+
+        <div class="form-group">
+          <label>Event Code</label>
+          <input type="text" id="eventCode" placeholder="e.g. AFRO2025" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label>Vendor ID</label>
+          <input type="text" id="vendorId" placeholder="Your vendor ID" autocomplete="off" />
+        </div>
+
+        <button class="btn btn-primary" id="vendorLoginBtn">Sign In</button>
+      </div>
+    </div>
+
+    <!-- Vendor Dashboard -->
+    <div id="dashboardSection" style="display:none;">
+
+      <!-- Balance Card -->
+      <div class="card" style="max-width: 480px; margin: 0 auto 1.5rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div class="text-muted" style="font-size: 0.8rem;">Current Balance</div>
+            <div style="font-size: 2rem; font-weight: 700;" id="currentBalance">₵0</div>
+          </div>
+          <button class="btn btn-outline w-auto" id="refreshBalance">Refresh</button>
+        </div>
+      </div>
+
+      <!-- Charge Card -->
+      <div class="card" style="max-width: 480px; margin: 0 auto;">
+        <div class="card-title">Charge Attendee</div>
+        <div id="chargeAlert" class="alert alert-error"></div>
+
+        <!-- Scanner -->
+        <div class="form-group">
+          <label>Scan Attendee QR Card</label>
+          <div id="qrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+          <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+        </div>
+
+        <div class="form-group">
+          <label>QR Code ID</label>
+          <input type="text" id="chargeQrId" placeholder="Attendee QR code ID" autocomplete="off" />
+        </div>
+
+        <!-- Attendee Preview -->
+        <div id="attendeePreview" style="display:none; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <div>
+              <div style="font-weight: 600;" id="previewName">—</div>
+              <div class="text-muted" style="font-size: 0.8rem;">Attendee</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+              <div style="font-weight: 700; font-size: 1.2rem;" id="previewBalance">—</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Amount (₵)</label>
+          <input type="number" id="chargeAmount" placeholder="e.g. 20" min="1" />
+        </div>
+
+        <button class="btn btn-primary" id="chargeBtn">Charge</button>
+
+        <!-- Success Receipt -->
+        <div id="chargeReceipt" style="display:none; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); text-align: center;">
+          <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Payment Successful</div>
+          <div class="text-muted" style="font-size: 0.875rem;" id="receiptDetails"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script type="module" src="/js/vendor.js"></script>
+</body>
+</html>

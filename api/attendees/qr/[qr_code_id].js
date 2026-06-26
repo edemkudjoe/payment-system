@@ -1,5 +1,4 @@
 import { createClient } from '@supabase/supabase-js';
-import { authenticate } from '../_middleware/auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -11,16 +10,12 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const staff = authenticate(req, res, ['admin', 'manager', 'cashier']);
-  if (!staff) return;
-
   const { qr_code_id } = req.query;
 
   const { data, error } = await supabase
     .from('attendees')
-    .select('id, name, balance, is_active, created_at')
+    .select('id, name, balance, is_active')
     .eq('qr_code_id', qr_code_id)
-    .eq('event_id', staff.event_id)
     .single();
 
   if (error || !data) {

@@ -1,5 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
-import { authenticate } from '../_middleware/auth.js';
+import { authenticate } from '../../_middleware/auth.js';
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
@@ -15,6 +15,11 @@ export default async function handler(req, res) {
   if (!staff) return;
 
   const { id } = req.query;
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than 0' });
+  }
 
   // Verify attendee belongs to staff's event
   const { data: attendee, error: attendeeError } = await supabase
@@ -32,26 +37,20 @@ export default async function handler(req, res) {
     return res.status(403).json({ error: 'Attendee card is inactive' });
   }
 
-  if (attendee.balance === 0) {
-    return res.status(400).json({ error: 'No tokens to refund' });
-  }
-
-  const refundAmount = attendee.balance;
-
-  // Zero out balance and log transaction
+  // Update balance and log transaction atomically
   const { error: balanceError } = await supabase
     .from('attendees')
-    .update({ balance: 0 })
+    .update({ balance: attendee.balance + amount })
     .eq('id', id);
 
   if (balanceError) {
     return res.status(500).json({ error: balanceError.message });
   }
 
-  const { data, error } = await supabase.rpc('process_exit', {
+  const { data, error } = await supabase.rpc('process_topup', {
     p_event_id: staff.event_id,
     p_attendee_id: id,
-    p_type: 'refund', // or 'donation'
+    p_amount: amount,
     p_staff_id: staff.staff_id
   });
 
@@ -59,7 +58,7 @@ export default async function handler(req, res) {
   if (data.error) return res.status(400).json({ error: data.error });
 
   return res.status(200).json({
-  message: 'Refund successful', // or 'Donation successful'
-  amount: data.amount
+    message: 'Top up successful',
+    new_balance: data.new_balance
   });
 }
