@@ -305,26 +305,95 @@ app.get('/api/events/:id/transactions', authenticate(['admin', 'manager']), asyn
 
 // ─── Attendees ────────────────────────────────────────────────────────────────
 
-app.post('/api/attendees', authenticate(['admin', 'cashier']), async (req, res) => {
-  const { name } = req.body;
-  const qr_code_id = uuidv4();
+// Generate a batch of inactive QR cards
+app.post('/api/attendees/generate', authenticate(['admin']), async (req, res) => {
+  const { count } = req.body;
 
-  let qr_code_image;
-  try {
-    qr_code_image = await QRCode.toDataURL(qr_code_id);
-  } catch {
-    return res.status(500).json({ error: 'Failed to generate QR code' });
+  if (!count || count < 1 || count > 500) {
+    return res.status(400).json({ error: 'count must be between 1 and 500' });
+  }
+
+  const cards = [];
+  for (let i = 0; i < count; i++) {
+    cards.push({
+      event_id: req.staff.event_id,
+      qr_code_id: uuidv4(),
+      status: 'inactive',
+      balance: 0
+    });
   }
 
   const { data, error } = await supabase
     .from('attendees')
-    .insert({ event_id: req.staff.event_id, name: name || null, qr_code_id })
-    .select()
+    .insert(cards)
+    .select('id, qr_code_id');
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Generate QR code images for each card
+  const cardsWithQR = await Promise.all(
+    data.map(async (card) => ({
+      id: card.id,
+      qr_code_id: card.qr_code_id,
+      qr_code_image: await QRCode.toDataURL(card.qr_code_id)
+    }))
+  );
+
+  return res.status(201).json({ count: cardsWithQR.length, cards: cardsWithQR });
+});
+
+// Activate a card at the gate
+app.post('/api/attendees/activate', authenticate(['admin', 'cashier']), async (req, res) => {
+  const { qr_code_id, name } = req.body;
+
+  if (!qr_code_id) {
+    return res.status(400).json({ error: 'qr_code_id is required' });
+  }
+
+  const { data: attendee, error: fetchError } = await supabase
+    .from('attendees')
+    .select('id, status')
+    .eq('qr_code_id', qr_code_id)
+    .eq('event_id', req.staff.event_id)
+    .single();
+
+  if (fetchError || !attendee) {
+    return res.status(404).json({ error: 'Card not found for this event' });
+  }
+
+  if (attendee.status === 'active') {
+    return res.status(409).json({ error: 'Card is already active' });
+  }
+
+  if (attendee.status === 'disabled') {
+    return res.status(403).json({ error: 'Card has been disabled' });
+  }
+
+  const { data, error } = await supabase
+    .from('attendees')
+    .update({ status: 'active', name: name || null })
+    .eq('id', attendee.id)
+    .select('id, qr_code_id, name, balance, status')
     .single();
 
   if (error) return res.status(500).json({ error: error.message });
 
-  return res.status(201).json({ ...data, qr_code_image });
+  return res.status(200).json({ message: 'Card activated successfully', attendee: data });
+});
+
+// Disable a card
+app.post('/api/attendees/:id/disable', authenticate(['admin']), async (req, res) => {
+  const { data, error } = await supabase
+    .from('attendees')
+    .update({ status: 'disabled' })
+    .eq('id', req.params.id)
+    .eq('event_id', req.staff.event_id)
+    .select('id, qr_code_id, status')
+    .single();
+
+  if (error || !data) return res.status(404).json({ error: 'Attendee not found' });
+
+  return res.status(200).json({ message: 'Card disabled', attendee: data });
 });
 
 app.get('/api/attendees/qr/:qr_code_id', async (req, res) => {
@@ -332,12 +401,12 @@ app.get('/api/attendees/qr/:qr_code_id', async (req, res) => {
 
   const { data, error } = await supabase
     .from('attendees')
-    .select('id, name, balance, is_active')
+    .select('id, name, balance, status')
     .eq('qr_code_id', qr_code_id)
     .single();
 
   if (error || !data) return res.status(404).json({ error: 'Attendee not found' });
-  if (!data.is_active) return res.status(403).json({ error: 'Attendee card is inactive' });
+  if (data.status !== 'active') return res.status(403).json({ error: 'Attendee card is not active' });
 
   return res.status(200).json(data);
 });
