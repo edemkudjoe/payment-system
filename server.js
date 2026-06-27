@@ -462,13 +462,17 @@ app.post('/api/attendees/:id/donate', authenticate(['admin', 'cashier']), async 
 // ─── Vendors ──────────────────────────────────────────────────────────────────
 
 app.post('/api/vendors', authenticate(['admin']), async (req, res) => {
-  const { name, description, vendor_code } = req.body;
+  const { name, description, vendor_code, pin } = req.body;
 
-  if (!name || !vendor_code) return res.status(400).json({ error: 'name and vendor_code are required' });
+  if (!name || !vendor_code || !pin) {
+    return res.status(400).json({ error: 'name, vendor_code and pin are required' });
+  }
+
+  const hashedPin = await bcrypt.hash(pin, 10);
 
   const { data, error } = await supabase
     .from('vendors')
-    .insert({ event_id: req.staff.event_id, name, description: description || null, vendor_code })
+    .insert({ event_id: req.staff.event_id, name, description: description || null, vendor_code, pin: hashedPin })
     .select()
     .single();
 
@@ -479,12 +483,11 @@ app.post('/api/vendors', authenticate(['admin']), async (req, res) => {
 
   return res.status(201).json(data);
 });
-
 app.post('/api/vendors/login', async (req, res) => {
-  const { event_code, vendor_code } = req.body;
+  const { event_code, vendor_code, pin } = req.body;
 
-  if (!event_code || !vendor_code) {
-    return res.status(400).json({ error: 'event_code and vendor_code are required' });
+  if (!event_code || !vendor_code || !pin) {
+    return res.status(400).json({ error: 'event_code, vendor_code and pin are required' });
   }
 
   const { data: event, error: eventError } = await supabase
@@ -500,7 +503,7 @@ app.post('/api/vendors/login', async (req, res) => {
 
   const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
-    .select('id, name, description, balance')
+    .select('id, name, description, balance, pin')
     .eq('vendor_code', vendor_code)
     .eq('event_id', event.id)
     .single();
@@ -509,9 +512,16 @@ app.post('/api/vendors/login', async (req, res) => {
     return res.status(404).json({ error: 'Vendor not found for this event' });
   }
 
-  return res.status(200).json({ vendor, event_id: event.id });
-});
+  const pinMatch = await bcrypt.compare(pin, vendor.pin);
+  if (!pinMatch) {
+    return res.status(401).json({ error: 'Invalid PIN' });
+  }
 
+  // Don't return the PIN
+  const { pin: _, ...vendorData } = vendor;
+
+  return res.status(200).json({ vendor: vendorData, event_id: event.id });
+});
 app.get('/api/vendors/:id/balance', async (req, res) => {
   const { id } = req.params;
   const authHeader = req.headers.authorization;
