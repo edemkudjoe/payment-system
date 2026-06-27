@@ -57,47 +57,48 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
-// --- Register Attendee ---
-document.getElementById('registerBtn').addEventListener('click', async () => {
+// --- Activate Card ---
+let activateScanner = null;
+
+// Init activate scanner when page loads
+activateScanner = initScanner('activateQrScanner', (decodedText) => {
+  document.getElementById('activateQrId').value = decodedText;
+  if (activateScanner) activateScanner.pause();
+});
+
+document.getElementById('activateBtn').addEventListener('click', async () => {
+  const qr_code_id = document.getElementById('activateQrId').value.trim();
   const name = document.getElementById('attendeeName').value.trim();
-  const btn = document.getElementById('registerBtn');
 
+  if (!qr_code_id) return showAlert('registerAlert', 'Scan or enter a QR code ID.');
+
+  const btn = document.getElementById('activateBtn');
   btn.disabled = true;
-  btn.textContent = 'Registering...';
+  btn.textContent = 'Activating...';
 
-  const { ok, data } = await apiFetch('/attendees', {
+  const { ok, data } = await apiFetch('/attendees/activate', {
     method: 'POST',
-    body: { name }
+    body: { qr_code_id, name }
   });
 
   btn.disabled = false;
-  btn.textContent = 'Register & Generate QR';
+  btn.textContent = 'Activate Card';
 
-  if (!ok) return showAlert('registerAlert', data.error || 'Registration failed.');
+  if (!ok) {
+    if (activateScanner) activateScanner.resume();
+    return showAlert('registerAlert', data.error || 'Activation failed.');
+  }
 
-  document.getElementById('qrImage').src = data.qr_code_image;
-  document.getElementById('qrCodeId').textContent = `ID: ${data.qr_code_id}`;
-  document.getElementById('qrResult').style.display = 'block';
+  document.getElementById('activateDetails').textContent =
+    `${data.attendee.name || 'Unnamed'} · Balance: ₵${data.attendee.balance}`;
+  document.getElementById('activateResult').style.display = 'block';
+  document.getElementById('activateQrId').value = '';
   document.getElementById('attendeeName').value = '';
 
-  showAlert('registerAlert', 'Attendee registered successfully.', 'success');
-});
-
-document.getElementById('printBtn').addEventListener('click', () => {
-  const img = document.getElementById('qrImage').src;
-  const id = document.getElementById('qrCodeId').textContent;
-  const win = window.open('', '_blank');
-  win.document.write(`
-    <html>
-      <body style="text-align:center; font-family: system-ui; padding: 2rem;">
-        <h2>Event Payment Card</h2>
-        <img src="${img}" style="width:220px; height:220px;" />
-        <p style="font-size:0.85rem; color:#555; margin-top:0.5rem;">${id}</p>
-      </body>
-    </html>
-  `);
-  win.document.close();
-  win.print();
+  setTimeout(() => {
+    document.getElementById('activateResult').style.display = 'none';
+    if (activateScanner) activateScanner.resume();
+  }, 3000);
 });
 
 // --- Top Up ---
