@@ -48,9 +48,10 @@ if (vendor && event_id) {
 document.getElementById('vendorLoginBtn').addEventListener('click', async () => {
   const event_code = document.getElementById('eventCode').value.trim();
   const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
+  const pin = document.getElementById('vendorPin').value.trim();
 
-  if (!event_code || !vendor_code) {
-    return showAlert('loginAlert', 'Event code and vendor code are required.');
+  if (!event_code || !vendor_code || !pin) {
+    return showAlert('loginAlert', 'Event code, vendor code and PIN are required.');
   }
 
   const btn = document.getElementById('vendorLoginBtn');
@@ -59,7 +60,7 @@ document.getElementById('vendorLoginBtn').addEventListener('click', async () => 
 
   const { ok, data } = await apiFetch(`/vendors/login`, {
     method: 'POST',
-    body: { event_code, vendor_code }
+    body: { event_code, vendor_code, pin }
   });
 
   btn.disabled = false;
