@@ -47,10 +47,10 @@ if (vendor && event_id) {
 // We fetch vendor details and store them in sessionStorage
 document.getElementById('vendorLoginBtn').addEventListener('click', async () => {
   const event_code = document.getElementById('eventCode').value.trim();
-  const vendor_id = document.getElementById('vendorId').value.trim();
+  const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
 
-  if (!event_code || !vendor_id) {
-    return showAlert('loginAlert', 'Event code and vendor ID are required.');
+  if (!event_code || !vendor_code) {
+    return showAlert('loginAlert', 'Event code and vendor code are required.');
   }
 
   const btn = document.getElementById('vendorLoginBtn');
@@ -59,7 +59,7 @@ document.getElementById('vendorLoginBtn').addEventListener('click', async () => 
 
   const { ok, data } = await apiFetch(`/vendors/login`, {
     method: 'POST',
-    body: { event_code, vendor_id }
+    body: { event_code, vendor_code }
   });
 
   btn.disabled = false;
@@ -71,7 +71,6 @@ document.getElementById('vendorLoginBtn').addEventListener('click', async () => 
   saveVendorSession(data.vendor, data.event_id);
   showDashboard();
 });
-
 // --- Dashboard ---
 function showDashboard() {
   document.getElementById('loginSection').style.display = 'none';
