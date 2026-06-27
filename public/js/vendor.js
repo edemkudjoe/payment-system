@@ -4,6 +4,9 @@ const API_BASE = '/api';
 
 let vendorSession = null;
 let html5QrCode = null;
+let menuItems = [];
+let cart = [];
+let currentAttendee = null;
 
 function saveVendorSession(vendor, event_id) {
   sessionStorage.setItem('vendor', JSON.stringify(vendor));
@@ -34,14 +37,14 @@ async function apiFetch(path, options = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
-// --- Restore session on page load ---
+// --- Restore session ---
 const { vendor, event_id } = getVendorSession();
 if (vendor && event_id) {
   vendorSession = { vendor, event_id };
   showDashboard();
 }
 
-// --- Vendor Login ---
+// --- Login ---
 document.getElementById('vendorLoginBtn').addEventListener('click', async () => {
   const event_code = document.getElementById('eventCode').value.trim();
   const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
@@ -77,7 +80,7 @@ function showDashboard() {
   document.getElementById('vendorName').textContent = vendorSession.vendor.name;
   loadBalance();
   loadMenu();
-  initScanner();
+  showSellMode();
 }
 
 document.getElementById('logoutBtn').addEventListener('click', () => {
@@ -88,6 +91,27 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   document.getElementById('vendorName').textContent = '';
 });
 
+// --- Mode Toggle ---
+document.getElementById('setupModeBtn').addEventListener('click', () => {
+  document.getElementById('setupMode').style.display = 'block';
+  document.getElementById('sellMode').style.display = 'none';
+  document.getElementById('setupModeBtn').className = 'btn btn-primary w-auto';
+  document.getElementById('sellModeBtn').className = 'btn btn-outline w-auto';
+  if (html5QrCode) html5QrCode.stop().catch(() => {});
+});
+
+document.getElementById('sellModeBtn').addEventListener('click', () => {
+  showSellMode();
+});
+
+function showSellMode() {
+  document.getElementById('setupMode').style.display = 'none';
+  document.getElementById('sellMode').style.display = 'block';
+  document.getElementById('sellModeBtn').className = 'btn btn-primary w-auto';
+  document.getElementById('setupModeBtn').className = 'btn btn-outline w-auto';
+  goToStage(1);
+}
+
 // --- Balance ---
 async function loadBalance() {
   const { ok, data } = await apiFetch(
@@ -97,12 +121,31 @@ async function loadBalance() {
   document.getElementById('currentBalance').textContent = `₵${data.balance}`;
 }
 
-document.getElementById('refreshBalance').addEventListener('click', loadBalance);
+// --- Stages ---
+function goToStage(n) {
+  document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
+  document.getElementById(`stage${n}`).classList.add('active');
+
+  // Update dots
+  for (let i = 1; i <= 3; i++) {
+    const dot = document.getElementById(`dot${i}`);
+    dot.className = 'stage-dot';
+    if (i < n) dot.classList.add('done');
+    else if (i === n) dot.classList.add('active');
+  }
+
+  // Update lines
+  for (let i = 1; i <= 2; i++) {
+    const line = document.getElementById(`line${i}`);
+    line.className = 'stage-line';
+    if (i < n) line.classList.add('done');
+  }
+
+  if (n === 2) initScanner();
+  if (n !== 2 && html5QrCode) html5QrCode.stop().catch(() => {});
+}
 
 // --- Menu ---
-let menuItems = [];
-let cart = [];
-
 async function loadMenu() {
   const { ok, data } = await apiFetch(
     `/vendors/${vendorSession.vendor.id}/menu?event_id=${vendorSession.event_id}`
@@ -110,6 +153,7 @@ async function loadMenu() {
   if (!ok) return;
   menuItems = data;
   renderMenu();
+  renderMenuGrid();
 }
 
 function renderMenu() {
@@ -132,18 +176,29 @@ function renderMenu() {
       <div style="display: flex; align-items: center; gap: 0.75rem;">
         <span style="font-weight: 600;">₵${item.price}</span>
         <button
-          class="btn btn-primary w-auto"
-          style="padding: 0.2rem 0.75rem; font-size: 0.8rem;"
-          onclick="addToCart('${item.id}')"
-          ${!item.is_available ? 'disabled' : ''}
-        >+ Add</button>
-        <button
           class="btn btn-danger w-auto"
           style="padding: 0.2rem 0.6rem; font-size: 0.8rem;"
           onclick="deleteMenuItem('${item.id}')"
         >✕</button>
       </div>
     </div>
+  `).join('');
+}
+
+function renderMenuGrid() {
+  const grid = document.getElementById('menuGrid');
+  const available = menuItems.filter(i => i.is_available);
+
+  if (!available.length) {
+    grid.innerHTML = '<div class="text-muted" style="font-size: 0.875rem; grid-column: span 2;">No available items. Go to Setup to add menu items.</div>';
+    return;
+  }
+
+  grid.innerHTML = available.map(item => `
+    <button class="menu-item-btn" onclick="addToCart('${item.id}')">
+      <div class="menu-item-name">${item.name}</div>
+      <div class="menu-item-price">₵${item.price}</div>
+    </button>
   `).join('');
 }
 
@@ -166,6 +221,7 @@ document.getElementById('addMenuItemBtn').addEventListener('click', async () => 
   document.getElementById('menuItemPrice').value = '';
   menuItems.push(data);
   renderMenu();
+  renderMenuGrid();
 });
 
 window.toggleMenuItem = async (item_id) => {
@@ -176,6 +232,7 @@ window.toggleMenuItem = async (item_id) => {
   if (!ok) return;
   menuItems = menuItems.map(i => i.id === item_id ? data : i);
   renderMenu();
+  renderMenuGrid();
 };
 
 window.deleteMenuItem = async (item_id) => {
@@ -191,6 +248,7 @@ window.deleteMenuItem = async (item_id) => {
   menuItems = menuItems.filter(i => i.id !== item_id);
   cart = cart.filter(i => i.menu_item_id !== item_id);
   renderMenu();
+  renderMenuGrid();
   renderCart();
 };
 
@@ -209,33 +267,32 @@ window.addToCart = (item_id) => {
 };
 
 function renderCart() {
-  const section = document.getElementById('cartSection');
-  const container = document.getElementById('cartItems');
+  const summary = document.getElementById('cartSummary');
+  const emptyMsg = document.getElementById('emptyCartMsg');
+  const itemsContainer = document.getElementById('cartSummaryItems');
 
   if (!cart.length) {
-    section.style.display = 'none';
+    summary.style.display = 'none';
+    emptyMsg.style.display = 'block';
     return;
   }
 
-  section.style.display = 'block';
+  summary.style.display = 'block';
+  emptyMsg.style.display = 'none';
 
-  container.innerHTML = cart.map((item, index) => `
-    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0.75rem; background: var(--bg); border-radius: var(--radius); border: 1px solid var(--border);">
-      <span style="font-weight: 500;">${item.name}</span>
-      <div style="display: flex; align-items: center; gap: 0.75rem;">
-        <div style="display: flex; align-items: center; gap: 0.5rem;">
-          <button class="btn btn-outline w-auto" style="padding: 0.1rem 0.5rem; font-size: 0.9rem;" onclick="updateCartQty(${index}, -1)">−</button>
-          <span style="min-width: 1.5rem; text-align: center;">${item.quantity}</span>
-          <button class="btn btn-outline w-auto" style="padding: 0.1rem 0.5rem; font-size: 0.9rem;" onclick="updateCartQty(${index}, 1)">+</button>
-        </div>
-        <span style="font-weight: 600; min-width: 3rem; text-align: right;">₵${item.price * item.quantity}</span>
-        <button class="btn btn-danger w-auto" style="padding: 0.2rem 0.6rem; font-size: 0.8rem;" onclick="removeFromCart(${index})">✕</button>
+  itemsContainer.innerHTML = cart.map((item, index) => `
+    <div class="cart-summary-row">
+      <div style="display: flex; align-items: center; gap: 0.5rem;">
+        <button class="btn btn-outline w-auto" style="padding: 0.1rem 0.4rem; font-size: 0.8rem;" onclick="updateCartQty(${index}, -1)">−</button>
+        <span>${item.name} x${item.quantity}</span>
+        <button class="btn btn-outline w-auto" style="padding: 0.1rem 0.4rem; font-size: 0.8rem;" onclick="updateCartQty(${index}, 1)">+</button>
       </div>
+      <span style="font-weight: 600;">₵${item.price * item.quantity}</span>
     </div>
   `).join('');
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
-  document.getElementById('cartTotal').textContent = `₵${total}`;
+  document.getElementById('cartTotalDisplay').textContent = `₵${total}`;
 }
 
 window.updateCartQty = (index, delta) => {
@@ -244,19 +301,54 @@ window.updateCartQty = (index, delta) => {
   renderCart();
 };
 
-window.removeFromCart = (index) => {
-  cart.splice(index, 1);
-  renderCart();
-};
-
 document.getElementById('clearCartBtn').addEventListener('click', () => {
   cart = [];
   renderCart();
 });
 
-// --- QR Scanner ---
+document.getElementById('proceedToScanBtn').addEventListener('click', () => {
+  if (!cart.length) return;
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  // Show order summary in stage 2
+  document.getElementById('stage2CartSummary').innerHTML = `
+    ${cart.map(i => `
+      <div class="cart-summary-row">
+        <span>${i.name} x${i.quantity}</span>
+        <span style="font-weight: 600;">₵${i.price * i.quantity}</span>
+      </div>
+    `).join('')}
+    <div class="cart-total-row">
+      <span>Total</span>
+      <span>₵${total}</span>
+    </div>
+  `;
+
+  document.getElementById('chargeBtnAmount').textContent = `₵${total}`;
+  document.getElementById('chargeBtn').style.display = 'none';
+  document.getElementById('attendeePreview').style.display = 'none';
+  document.getElementById('chargeQrId').value = '';
+  currentAttendee = null;
+
+  goToStage(2);
+});
+
+document.getElementById('backToCartBtn').addEventListener('click', () => {
+  goToStage(1);
+});
+
+// --- Scanner ---
 function initScanner() {
-  html5QrCode = new Html5Qrcode('qrScanner');
+  if (html5QrCode) {
+    html5QrCode.stop().catch(() => {}).then(() => startScanner());
+  } else {
+    html5QrCode = new Html5Qrcode('qrScanner');
+    startScanner();
+  }
+}
+
+function startScanner() {
   html5QrCode.start(
     { facingMode: 'environment' },
     { fps: 10, qrbox: { width: 250, height: 250 } },
@@ -278,13 +370,16 @@ async function lookupAttendee(qr_code_id) {
   if (!ok) {
     showAlert('chargeAlert', data.error || 'Attendee not found.');
     document.getElementById('attendeePreview').style.display = 'none';
+    document.getElementById('chargeBtn').style.display = 'none';
     if (html5QrCode) html5QrCode.resume();
     return;
   }
 
+  currentAttendee = data;
   document.getElementById('previewName').textContent = data.name || 'Unnamed Attendee';
   document.getElementById('previewBalance').textContent = `₵${data.balance}`;
   document.getElementById('attendeePreview').style.display = 'block';
+  document.getElementById('chargeBtn').style.display = 'block';
 }
 
 document.getElementById('chargeQrId').addEventListener('change', (e) => {
@@ -294,10 +389,8 @@ document.getElementById('chargeQrId').addEventListener('change', (e) => {
 
 // --- Charge ---
 document.getElementById('chargeBtn').addEventListener('click', async () => {
-  const qr_code_id = document.getElementById('chargeQrId').value.trim();
-
-  if (!qr_code_id) return showAlert('chargeAlert', 'Scan or enter a QR code ID.');
-  if (!cart.length) return showAlert('chargeAlert', 'Add items to the cart first.');
+  if (!currentAttendee) return showAlert('chargeAlert', 'Scan an attendee card first.');
+  if (!cart.length) return showAlert('chargeAlert', 'Cart is empty.');
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -307,11 +400,15 @@ document.getElementById('chargeBtn').addEventListener('click', async () => {
 
   const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/charge`, {
     method: 'POST',
-    body: { qr_code_id, amount: total, event_id: vendorSession.event_id }
+    body: {
+      qr_code_id: currentAttendee.qr_code_id || document.getElementById('chargeQrId').value.trim(),
+      amount: total,
+      event_id: vendorSession.event_id
+    }
   });
 
   btn.disabled = false;
-  btn.textContent = 'Charge';
+  btn.textContent = `Charge ₵${total}`;
 
   if (!ok) {
     showAlert('chargeAlert', data.error || 'Charge failed.');
@@ -319,19 +416,23 @@ document.getElementById('chargeBtn').addEventListener('click', async () => {
     return;
   }
 
-  const itemsSummary = cart.map(i => `${i.name} x${i.quantity}`).join(', ');
-  document.getElementById('receiptDetails').textContent =
-    `₵${total} charged · ${itemsSummary} · Attendee balance: ₵${data.attendee_new_balance}`;
-  document.getElementById('chargeReceipt').style.display = 'block';
+  // Update balance
   document.getElementById('currentBalance').textContent = `₵${data.vendor_new_balance}`;
 
-  cart = [];
-  renderCart();
+  // Populate receipt
+  document.getElementById('receiptAmount').textContent = `₵${total}`;
+  document.getElementById('receiptItems').textContent = cart.map(i => `${i.name} x${i.quantity}`).join(' · ');
+  document.getElementById('receiptAttendeeName').textContent = currentAttendee.name || 'Unnamed';
+  document.getElementById('receiptAttendeeBalance').textContent = `₵${data.attendee_new_balance}`;
+  document.getElementById('receiptVendorBalance').textContent = `₵${data.vendor_new_balance}`;
 
-  setTimeout(() => {
-    document.getElementById('chargeQrId').value = '';
-    document.getElementById('attendeePreview').style.display = 'none';
-    document.getElementById('chargeReceipt').style.display = 'none';
-    if (html5QrCode) html5QrCode.resume();
-  }, 3000);
+  goToStage(3);
+});
+
+// --- New Sale ---
+document.getElementById('newSaleBtn').addEventListener('click', () => {
+  cart = [];
+  currentAttendee = null;
+  renderCart();
+  goToStage(1);
 });
