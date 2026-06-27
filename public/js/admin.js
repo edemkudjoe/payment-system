@@ -32,13 +32,7 @@ async function loadSummary() {
   document.getElementById('statDonated').textContent = `₵${data.total_donated}`;
   document.getElementById('statRemaining').textContent = `₵${data.total_remaining_balance}`;
   document.getElementById('statAttendees').textContent = data.total_attendees;
-  <div class="card" style="margin-top: 1.5rem; border-color: #fecaca;">
-  <div class="card-title" style="color: var(--danger);">Danger Zone</div>
-  <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;">
-    Permanently delete all transactions, attendees, and reset vendor and staff records for this event. This cannot be undone.
-  </p>
-  <button class="btn btn-danger w-auto" id="deleteAllBtn">Delete All Event Data</button>
-</div>
+  
 
   const tbody = document.getElementById('vendorBreakdown');
   tbody.innerHTML = data.vendor_breakdown.length
@@ -312,6 +306,27 @@ window.deleteVendor = async (id, name) => {
   showAlert('vendorAlert', `${name} deleted successfully.`, 'success');
   loadVendors();
 };
+
+// --- Delete All Event Data ---
+document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+  const first = confirm('Are you sure you want to delete ALL event data? This includes all transactions, attendees, and resets vendors and staff.');
+  if (!first) return;
+
+  const second = confirm('This cannot be undone. Type OK to confirm.');
+  if (!second) return;
+
+  const { ok, data } = await apiFetch(`/events/${event_id}/data`, {
+    method: 'DELETE'
+  });
+
+  if (!ok) return showAlert('summaryAlert', data.error || 'Failed to delete event data.');
+
+  showAlert('summaryAlert', 'All event data deleted successfully.', 'success');
+  loadSummary();
+  loadTransactions();
+  loadVendors();
+  loadStaff();
+});
 
 // --- Init ---
 loadSummary();
