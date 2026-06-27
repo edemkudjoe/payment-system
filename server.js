@@ -462,26 +462,29 @@ app.post('/api/attendees/:id/donate', authenticate(['admin', 'cashier']), async 
 // ─── Vendors ──────────────────────────────────────────────────────────────────
 
 app.post('/api/vendors', authenticate(['admin']), async (req, res) => {
-  const { name, description } = req.body;
+  const { name, description, vendor_code } = req.body;
 
-  if (!name) return res.status(400).json({ error: 'name is required' });
+  if (!name || !vendor_code) return res.status(400).json({ error: 'name and vendor_code are required' });
 
   const { data, error } = await supabase
     .from('vendors')
-    .insert({ event_id: req.staff.event_id, name, description: description || null })
+    .insert({ event_id: req.staff.event_id, name, description: description || null, vendor_code })
     .select()
     .single();
 
-  if (error) return res.status(500).json({ error: error.message });
+  if (error) {
+    if (error.code === '23505') return res.status(409).json({ error: 'Vendor code already exists for this event' });
+    return res.status(500).json({ error: error.message });
+  }
 
   return res.status(201).json(data);
 });
 
 app.post('/api/vendors/login', async (req, res) => {
-  const { event_code, vendor_id } = req.body;
+  const { event_code, vendor_code } = req.body;
 
-  if (!event_code || !vendor_id) {
-    return res.status(400).json({ error: 'event_code and vendor_id are required' });
+  if (!event_code || !vendor_code) {
+    return res.status(400).json({ error: 'event_code and vendor_code are required' });
   }
 
   const { data: event, error: eventError } = await supabase
@@ -498,7 +501,7 @@ app.post('/api/vendors/login', async (req, res) => {
   const { data: vendor, error: vendorError } = await supabase
     .from('vendors')
     .select('id, name, description, balance')
-    .eq('id', vendor_id)
+    .eq('vendor_code', vendor_code)
     .eq('event_id', event.id)
     .single();
 
