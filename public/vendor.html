@@ -6,6 +6,119 @@
   <title>Vendor — Event Payment</title>
   <link rel="stylesheet" href="/css/style.css" />
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+  <style>
+    .menu-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.75rem;
+    }
+
+    .menu-item-btn {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+
+    .menu-item-btn:hover {
+      border-color: var(--primary);
+      background: #eff6ff;
+    }
+
+    .menu-item-btn.unavailable {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .menu-item-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+      margin-bottom: 0.25rem;
+    }
+
+    .menu-item-price {
+      font-size: 1.1rem;
+      font-weight: 700;
+      color: var(--primary);
+    }
+
+    .stage {
+      display: none;
+    }
+
+    .stage.active {
+      display: block;
+    }
+
+    .stage-indicator {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .stage-dot {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: var(--border);
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .stage-dot.active {
+      background: var(--primary);
+      color: #fff;
+    }
+
+    .stage-dot.done {
+      background: var(--success);
+      color: #fff;
+    }
+
+    .stage-line {
+      flex: 1;
+      height: 2px;
+      background: var(--border);
+    }
+
+    .stage-line.done {
+      background: var(--success);
+    }
+
+    .cart-summary {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+      margin-top: 1rem;
+    }
+
+    .cart-summary-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.875rem;
+      padding: 0.25rem 0;
+    }
+
+    .cart-total-row {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 700;
+      font-size: 1rem;
+      padding-top: 0.5rem;
+      margin-top: 0.5rem;
+      border-top: 1px solid var(--border);
+    }
+  </style>
 </head>
 <body>
   <nav class="navbar">
@@ -18,7 +131,7 @@
 
   <div class="container" style="padding-top: 1.5rem; padding-bottom: 2rem;">
 
-    <!-- Vendor Login -->
+    <!-- Login Section -->
     <div id="loginSection">
       <div class="card" style="max-width: 420px; margin: 0 auto;">
         <div class="card-title">Vendor Login</div>
@@ -41,102 +154,159 @@
       </div>
     </div>
 
-    <!-- Vendor Dashboard -->
+    <!-- Dashboard -->
     <div id="dashboardSection" style="display:none;">
 
-      <!-- Balance Card -->
-      <div class="card" style="max-width: 480px; margin: 0 auto 1.5rem;">
-        <div style="display: flex; justify-content: space-between; align-items: center;">
-          <div>
-            <div class="text-muted" style="font-size: 0.8rem;">Current Balance</div>
-            <div style="font-size: 2rem; font-weight: 700;" id="currentBalance">₵0</div>
-          </div>
-          <button class="btn btn-outline w-auto" id="refreshBalance">Refresh</button>
+      <!-- Top Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+        <div>
+          <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+          <div style="font-size: 1.5rem; font-weight: 700;" id="currentBalance">₵0</div>
+        </div>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-outline w-auto" id="setupModeBtn">⚙ Setup</button>
+          <button class="btn btn-primary w-auto" id="sellModeBtn">Sell</button>
         </div>
       </div>
 
-      <!-- Menu Setup -->
-      <div class="card" style="max-width: 480px; margin: 0 auto 1.5rem;">
-        <div class="card-title">Menu</div>
-        <div id="menuAlert" class="alert alert-error"></div>
+      <!-- Setup Mode -->
+      <div id="setupMode" style="display:none;">
+        <div class="card">
+          <div class="card-title">Menu Items</div>
+          <div id="menuAlert" class="alert alert-error"></div>
 
-        <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
-          <div class="form-group" style="margin: 0; flex: 2;">
-            <label>Item Name</label>
-            <input type="text" id="menuItemName" placeholder="e.g. Jollof Rice" />
-          </div>
-          <div class="form-group" style="margin: 0; flex: 1;">
-            <label>Price (₵)</label>
-            <input type="number" id="menuItemPrice" placeholder="e.g. 20" min="1" />
-          </div>
-          <div style="display: flex; align-items: flex-end;">
-            <button class="btn btn-primary w-auto" id="addMenuItemBtn" style="padding: 0.625rem 1rem;">
-              Add
-            </button>
-          </div>
-        </div>
-
-        <div id="menuList" style="display: flex; flex-direction: column; gap: 0.5rem;">
-          <div class="text-muted" style="font-size: 0.875rem;">No items yet</div>
-        </div>
-      </div>
-
-      <!-- Charge Attendee -->
-      <div class="card" style="max-width: 480px; margin: 0 auto;">
-        <div class="card-title">Charge Attendee</div>
-        <div id="chargeAlert" class="alert alert-error"></div>
-
-        <div class="form-group">
-          <label>Scan Attendee QR Card</label>
-          <div id="qrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
-          <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
-          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
-        </div>
-
-        <div class="form-group">
-          <label>QR Code ID</label>
-          <input type="text" id="chargeQrId" placeholder="Attendee QR code ID" autocomplete="off" />
-        </div>
-
-        <!-- Attendee Preview -->
-        <div id="attendeePreview" style="display:none; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between;">
-            <div>
-              <div style="font-weight: 600;" id="previewName">—</div>
-              <div class="text-muted" style="font-size: 0.8rem;">Attendee</div>
+          <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+            <div class="form-group" style="margin: 0; flex: 2;">
+              <label>Item Name</label>
+              <input type="text" id="menuItemName" placeholder="e.g. Jollof Rice" />
             </div>
-            <div style="text-align: right;">
-              <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
-              <div style="font-weight: 700; font-size: 1.2rem;" id="previewBalance">—</div>
+            <div class="form-group" style="margin: 0; flex: 1;">
+              <label>Price (₵)</label>
+              <input type="number" id="menuItemPrice" placeholder="e.g. 20" min="1" />
+            </div>
+            <div style="display: flex; align-items: flex-end;">
+              <button class="btn btn-primary w-auto" id="addMenuItemBtn" style="padding: 0.625rem 1rem;">Add</button>
             </div>
           </div>
-        </div>
 
-        <!-- Cart Items -->
-        <div id="cartSection" style="display:none; margin-bottom: 1rem;">
-          <div style="font-weight: 600; margin-bottom: 0.5rem;">Cart</div>
-          <div id="cartItems" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem;"></div>
-          <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg); border-radius: var(--radius);">
-            <span style="font-weight: 600;">Total</span>
-            <span style="font-weight: 700; font-size: 1.1rem;" id="cartTotal">₵0</span>
+          <div id="menuList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+            <div class="text-muted" style="font-size: 0.875rem;">No items yet</div>
           </div>
-          <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
-            <button class="btn btn-outline" id="clearCartBtn">Clear Cart</button>
-            <button class="btn btn-primary" id="chargeBtn">Charge</button>
-          </div>
-        </div>
-
-        <!-- Success Receipt -->
-        <div id="chargeReceipt" style="display:none; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); text-align: center;">
-          <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Payment Successful</div>
-          <div class="text-muted" style="font-size: 0.875rem;" id="receiptDetails"></div>
         </div>
       </div>
 
+      <!-- Sell Mode -->
+      <div id="sellMode" style="display:none;">
+
+        <!-- Stage Indicator -->
+        <div class="stage-indicator">
+          <div class="stage-dot active" id="dot1">1</div>
+          <div class="stage-line" id="line1"></div>
+          <div class="stage-dot" id="dot2">2</div>
+          <div class="stage-line" id="line2"></div>
+          <div class="stage-dot" id="dot3">3</div>
+        </div>
+
+        <!-- Stage 1 — Build Cart -->
+        <div class="stage active" id="stage1">
+          <div class="card">
+            <div class="card-title">Select Items</div>
+            <div id="menuGrid" class="menu-grid"></div>
+
+            <div id="cartSummary" class="cart-summary" style="display:none;">
+              <div style="font-weight: 600; margin-bottom: 0.5rem;">Cart</div>
+              <div id="cartSummaryItems"></div>
+              <div class="cart-total-row">
+                <span>Total</span>
+                <span id="cartTotalDisplay">₵0</span>
+              </div>
+              <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
+                <button class="btn btn-outline" id="clearCartBtn">Clear</button>
+                <button class="btn btn-primary" id="proceedToScanBtn">Next →</button>
+              </div>
+            </div>
+
+            <div id="emptyCartMsg" style="margin-top: 1rem; text-align: center;" class="text-muted">
+              Tap items above to add to cart
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 2 — Scan Attendee -->
+        <div class="stage" id="stage2">
+          <div class="card" style="margin-bottom: 1rem;">
+            <div style="font-weight: 600; margin-bottom: 0.25rem;">Order Summary</div>
+            <div id="stage2CartSummary"></div>
+          </div>
+
+          <div class="card">
+            <div class="card-title">Scan Attendee Card</div>
+            <div id="chargeAlert" class="alert alert-error"></div>
+
+            <div class="form-group">
+              <div id="qrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+            </div>
+
+            <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+              <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+              <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+              <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+            </div>
+
+            <div class="form-group">
+              <input type="text" id="chargeQrId" placeholder="Attendee QR code ID" autocomplete="off" />
+            </div>
+
+            <div id="attendeePreview" style="display:none; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+              <div style="display: flex; justify-content: space-between;">
+                <div>
+                  <div style="font-weight: 600;" id="previewName">—</div>
+                  <div class="text-muted" style="font-size: 0.8rem;">Attendee</div>
+                </div>
+                <div style="text-align: right;">
+                  <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+                  <div style="font-weight: 700; font-size: 1.2rem;" id="previewBalance">—</div>
+                </div>
+              </div>
+            </div>
+
+            <div style="display: flex; gap: 0.75rem;">
+              <button class="btn btn-outline" id="backToCartBtn">← Back</button>
+              <button class="btn btn-primary" id="chargeBtn" style="display:none;">Charge <span id="chargeBtnAmount"></span></button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 3 — Receipt -->
+        <div class="stage" id="stage3">
+          <div class="card" style="text-align: center; padding: 2rem 1.5rem;">
+            <div style="font-size: 3rem; margin-bottom: 0.75rem;">✓</div>
+            <div style="font-size: 1.25rem; font-weight: 700; color: var(--success); margin-bottom: 0.5rem;">
+              Payment Successful
+            </div>
+            <div style="font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;" id="receiptAmount"></div>
+            <div class="text-muted" style="font-size: 0.875rem; margin-bottom: 1.5rem;" id="receiptItems"></div>
+
+            <div style="background: var(--bg); border-radius: var(--radius); padding: 1rem; margin-bottom: 1.5rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.875rem;">
+                <span class="text-muted">Attendee</span>
+                <span id="receiptAttendeeName"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-top: 0.5rem;">
+                <span class="text-muted">Attendee Balance</span>
+                <span id="receiptAttendeeBalance"></span>
+              </div>
+              <div style="display: flex; justify-content: space-between; font-size: 0.875rem; margin-top: 0.5rem;">
+                <span class="text-muted">Your Balance</span>
+                <span id="receiptVendorBalance"></span>
+              </div>
+            </div>
+
+            <button class="btn btn-primary" id="newSaleBtn">New Sale</button>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
 
