@@ -28,6 +28,7 @@
 
     <!-- Summary Tab -->
     <div id="tab-summary" class="tab-content">
+      <div id="summaryAlert" class="alert alert-error"></div>
       <div class="grid-3" id="statCards" style="margin-bottom: 1.5rem;">
         <div class="stat-card">
           <div class="stat-label">Total Topped Up</div>
@@ -72,6 +73,13 @@
           </table>
         </div>
       </div>
+      <div class="card" style="margin-top: 1.5rem; border-color: #fecaca;">
+  <div class="card-title" style="color: var(--danger);">Danger Zone</div>
+  <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;">
+    Permanently delete all transactions, attendees, and reset vendor and staff records for this event. This cannot be undone.
+  </p>
+  <button class="btn btn-danger w-auto" id="deleteAllBtn">Delete All Event Data</button>
+</div>
     </div>
 
     <!-- Transactions Tab -->
