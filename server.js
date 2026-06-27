@@ -656,6 +656,109 @@ app.delete('/api/events/:id/data', authenticate(['admin']), async (req, res) => 
   return res.status(200).json({ message: 'All event data deleted successfully' });
 });
 
+// Get vendor menu
+app.get('/api/vendors/:id/menu', async (req, res) => {
+  const { id } = req.params;
+  const event_id = req.query.event_id;
+
+  if (!event_id) return res.status(400).json({ error: 'event_id is required' });
+
+  const { data, error } = await supabase
+    .from('menu_items')
+    .select('id, name, price, is_available')
+    .eq('vendor_id', id)
+    .eq('event_id', event_id)
+    .order('created_at', { ascending: true });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json(data);
+});
+
+// Add menu item
+app.post('/api/vendors/:id/menu', async (req, res) => {
+  const { id } = req.params;
+  const { name, price, event_id } = req.body;
+
+  if (!name || !price || !event_id) {
+    return res.status(400).json({ error: 'name, price and event_id are required' });
+  }
+
+  if (price <= 0) {
+    return res.status(400).json({ error: 'price must be greater than 0' });
+  }
+
+  // Verify vendor belongs to event
+  const { data: vendor, error: vendorError } = await supabase
+    .from('vendors')
+    .select('id')
+    .eq('id', id)
+    .eq('event_id', event_id)
+    .single();
+
+  if (vendorError || !vendor) {
+    return res.status(404).json({ error: 'Vendor not found' });
+  }
+
+  const { data, error } = await supabase
+    .from('menu_items')
+    .insert({ vendor_id: id, event_id, name, price })
+    .select('id, name, price, is_available')
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(201).json(data);
+});
+
+// Delete menu item
+app.delete('/api/vendors/:id/menu/:item_id', async (req, res) => {
+  const { id, item_id } = req.params;
+  const event_id = req.query.event_id;
+
+  if (!event_id) return res.status(400).json({ error: 'event_id is required' });
+
+  const { error } = await supabase
+    .from('menu_items')
+    .delete()
+    .eq('id', item_id)
+    .eq('vendor_id', id)
+    .eq('event_id', event_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'Menu item deleted' });
+});
+
+// Toggle menu item availability
+app.post('/api/vendors/:id/menu/:item_id/toggle', async (req, res) => {
+  const { id, item_id } = req.params;
+  const { event_id } = req.body;
+
+  if (!event_id) return res.status(400).json({ error: 'event_id is required' });
+
+  const { data: item, error: fetchError } = await supabase
+    .from('menu_items')
+    .select('is_available')
+    .eq('id', item_id)
+    .eq('vendor_id', id)
+    .eq('event_id', event_id)
+    .single();
+
+  if (fetchError || !item) return res.status(404).json({ error: 'Menu item not found' });
+
+  const { data, error } = await supabase
+    .from('menu_items')
+    .update({ is_available: !item.is_available })
+    .eq('id', item_id)
+    .select('id, name, price, is_available')
+    .single();
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json(data);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
