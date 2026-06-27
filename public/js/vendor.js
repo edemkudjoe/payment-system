@@ -78,6 +78,7 @@ function showDashboard() {
   document.getElementById('dashboardSection').style.display = 'block';
   document.getElementById('vendorName').textContent = vendorSession.vendor.name;
   loadBalance();
+  loadMenu();
   initScanner();
 }
 
