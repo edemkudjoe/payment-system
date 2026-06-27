@@ -5,7 +5,6 @@ const API_BASE = '/api';
 let vendorSession = null;
 let html5QrCode = null;
 
-// --- Vendor uses its own session separate from staff session ---
 function saveVendorSession(vendor, event_id) {
   sessionStorage.setItem('vendor', JSON.stringify(vendor));
   sessionStorage.setItem('vendor_event_id', event_id);
@@ -43,8 +42,6 @@ if (vendor && event_id) {
 }
 
 // --- Vendor Login ---
-// Vendors log in with event_code + vendor_id (no PIN needed)
-// We fetch vendor details and store them in sessionStorage
 document.getElementById('vendorLoginBtn').addEventListener('click', async () => {
   const event_code = document.getElementById('eventCode').value.trim();
   const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
@@ -58,7 +55,7 @@ document.getElementById('vendorLoginBtn').addEventListener('click', async () => 
   btn.disabled = true;
   btn.textContent = 'Signing in...';
 
-  const { ok, data } = await apiFetch(`/vendors/login`, {
+  const { ok, data } = await apiFetch('/vendors/login', {
     method: 'POST',
     body: { event_code, vendor_code, pin }
   });
@@ -72,6 +69,7 @@ document.getElementById('vendorLoginBtn').addEventListener('click', async () => 
   saveVendorSession(data.vendor, data.event_id);
   showDashboard();
 });
+
 // --- Dashboard ---
 function showDashboard() {
   document.getElementById('loginSection').style.display = 'none';
@@ -92,10 +90,14 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
 
 // --- Balance ---
 async function loadBalance() {
-  const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/balance`);
+  const { ok, data } = await apiFetch(
+    `/vendors/${vendorSession.vendor.id}/balance?event_id=${vendorSession.event_id}`
+  );
   if (!ok) return;
   document.getElementById('currentBalance').textContent = `₵${data.balance}`;
 }
+
+document.getElementById('refreshBalance').addEventListener('click', loadBalance);
 
 // --- Menu ---
 let menuItems = [];
@@ -252,8 +254,6 @@ document.getElementById('clearCartBtn').addEventListener('click', () => {
   renderCart();
 });
 
-document.getElementById('refreshBalance').addEventListener('click', loadBalance);
-
 // --- QR Scanner ---
 function initScanner() {
   html5QrCode = new Html5Qrcode('qrScanner');
@@ -265,16 +265,15 @@ function initScanner() {
       html5QrCode.pause();
       lookupAttendee(decodedText);
     },
-    () => {} // ignore scan errors
+    () => {}
   ).catch(() => {
-    // Camera not available — manual entry only
     document.getElementById('qrScanner').style.display = 'none';
   });
 }
 
 // --- Attendee Lookup ---
 async function lookupAttendee(qr_code_id) {
-  const { ok, data } = await apiFetch(`/attendees/${qr_code_id}`);
+  const { ok, data } = await apiFetch(`/attendees/qr/${qr_code_id}`);
 
   if (!ok) {
     showAlert('chargeAlert', data.error || 'Attendee not found.');
@@ -320,34 +319,17 @@ document.getElementById('chargeBtn').addEventListener('click', async () => {
     return;
   }
 
-  // Show receipt
   const itemsSummary = cart.map(i => `${i.name} x${i.quantity}`).join(', ');
   document.getElementById('receiptDetails').textContent =
     `₵${total} charged · ${itemsSummary} · Attendee balance: ₵${data.attendee_new_balance}`;
   document.getElementById('chargeReceipt').style.display = 'block';
   document.getElementById('currentBalance').textContent = `₵${data.vendor_new_balance}`;
 
-  // Reset
   cart = [];
   renderCart();
 
   setTimeout(() => {
     document.getElementById('chargeQrId').value = '';
-    document.getElementById('attendeePreview').style.display = 'none';
-    document.getElementById('chargeReceipt').style.display = 'none';
-    if (html5QrCode) html5QrCode.resume();
-  }, 3000);
-});
-  // Show receipt
-  document.getElementById('receiptDetails').textContent =
-    `₵${amount} charged · Attendee balance: ₵${data.attendee_new_balance}`;
-  document.getElementById('chargeReceipt').style.display = 'block';
-  document.getElementById('currentBalance').textContent = `₵${data.vendor_new_balance}`;
-
-  // Reset for next transaction
-  setTimeout(() => {
-    document.getElementById('chargeQrId').value = '';
-    document.getElementById('chargeAmount').value = '';
     document.getElementById('attendeePreview').style.display = 'none';
     document.getElementById('chargeReceipt').style.display = 'none';
     if (html5QrCode) html5QrCode.resume();
