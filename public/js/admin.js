@@ -95,10 +95,11 @@ async function loadVendors() {
     ? data.vendors.map(v => `
         <tr>
           <td>${v.name}</td>
+          <td><span class="badge badge-blue">${v.vendor_code || '—'}</span></td>
           <td>${v.description || '—'}</td>
           <td>₵${v.balance}</td>
         </tr>`).join('')
-    : '<tr><td colspan="3" class="text-muted">No vendors yet</td></tr>';
+    : '<tr><td colspan="4" class="text-muted">No vendors yet</td></tr>';
 }
 
 document.getElementById('addVendorBtn').addEventListener('click', async () => {
