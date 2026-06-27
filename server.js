@@ -375,11 +375,11 @@ app.post('/api/attendees/activate', authenticate(['admin', 'cashier']), async (r
   }
 
   const { data, error } = await supabase
-    .from('attendees')
-    .update({ status: 'active', name: name || null })
-    .eq('id', attendee.id)
-    .select('id, qr_code_id, name, balance, status')
-    .single();
+  .from('attendees')
+  .update({ status: 'active', is_active: true, name: name || null })
+  .eq('id', attendee.id)
+  .select('id, qr_code_id, name, balance, status')
+  .single();
 
   if (error) return res.status(500).json({ error: error.message });
 
