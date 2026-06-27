@@ -20,23 +20,50 @@
 
     <!-- Tabs -->
     <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
-      <button class="btn btn-primary w-auto tab-btn" data-tab="register">Register Attendee</button>
+      <button class="btn btn-primary w-auto tab-btn" data-tab="register">Activate Card</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="topup">Top Up</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="exit">Refund / Donate</button>
     </div>
 
-    <!-- Register Attendee Tab -->
-    <div id="tab-register" class="tab-content">
-      <div class="card" style="max-width: 480px;">
-        <div class="card-title">Register New Attendee</div>
-        <div id="registerAlert" class="alert alert-error"></div>
+    <!-- Activate Card Tab -->
+<div id="tab-register" class="tab-content">
+  <div class="card" style="max-width: 480px;">
+    <div class="card-title">Activate Card</div>
+    <div id="registerAlert" class="alert alert-error"></div>
 
-        <div class="form-group">
-          <label>Name (optional)</label>
-          <input type="text" id="attendeeName" placeholder="Attendee full name" />
-        </div>
+    <div class="form-group">
+      <label>Scan QR Card</label>
+      <div id="activateQrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+    </div>
 
-        <button class="btn btn-primary" id="registerBtn">Register & Generate QR</button>
+    <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+      <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+      <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+    </div>
+
+    <div class="form-group">
+      <label>QR Code ID</label>
+      <input type="text" id="activateQrId" placeholder="Scan or enter QR code ID" autocomplete="off" />
+    </div>
+
+    <div class="form-group">
+      <label>Attendee Name (optional)</label>
+      <input type="text" id="attendeeName" placeholder="Full name" />
+    </div>
+
+    <button class="btn btn-primary" id="activateBtn">Activate Card</button>
+
+    <!-- Result -->
+    <div id="activateResult" style="display:none; margin-top: 1.5rem;">
+      <hr class="divider" />
+      <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); padding: 1rem; text-align: center;">
+        <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Card Activated</div>
+        <div class="text-muted" style="font-size: 0.875rem;" id="activateDetails"></div>
+      </div>
+    </div>
+  </div>
+</div>
 
         <!-- QR Result -->
         <div id="qrResult" style="display:none; margin-top: 1.5rem; text-align: center;">
