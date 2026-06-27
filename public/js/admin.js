@@ -32,6 +32,13 @@ async function loadSummary() {
   document.getElementById('statDonated').textContent = `₵${data.total_donated}`;
   document.getElementById('statRemaining').textContent = `₵${data.total_remaining_balance}`;
   document.getElementById('statAttendees').textContent = data.total_attendees;
+  <div class="card" style="margin-top: 1.5rem; border-color: #fecaca;">
+  <div class="card-title" style="color: var(--danger);">Danger Zone</div>
+  <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;">
+    Permanently delete all transactions, attendees, and reset vendor and staff records for this event. This cannot be undone.
+  </p>
+  <button class="btn btn-danger w-auto" id="deleteAllBtn">Delete All Event Data</button>
+</div>
 
   const tbody = document.getElementById('vendorBreakdown');
   tbody.innerHTML = data.vendor_breakdown.length
@@ -43,6 +50,7 @@ async function loadSummary() {
         </tr>`).join('')
     : '<tr><td colspan="3" class="text-muted">No vendors yet</td></tr>';
 }
+
 
 // --- Transactions ---
 async function loadTransactions() {
@@ -98,10 +106,14 @@ async function loadVendors() {
           <td><span class="badge badge-blue">${v.vendor_code || '—'}</span></td>
           <td>${v.description || '—'}</td>
           <td>₵${v.balance}</td>
+          <td>
+            <button class="btn btn-danger w-auto" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" onclick="deleteVendor('${v.id}', '${v.name}')">
+              Delete
+            </button>
+          </td>
         </tr>`).join('')
-    : '<tr><td colspan="4" class="text-muted">No vendors yet</td></tr>';
+    : '<tr><td colspan="5" class="text-muted">No vendors yet</td></tr>';
 }
-
 document.getElementById('addVendorBtn').addEventListener('click', async () => {
   const name = document.getElementById('vendorName').value.trim();
   const description = document.getElementById('vendorDesc').value.trim();
@@ -143,10 +155,14 @@ async function loadStaff() {
           <td>${s.name}</td>
           <td>${s.username}</td>
           <td><span class="badge badge-blue">${s.role}</span></td>
+          <td>
+            <button class="btn btn-danger w-auto" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" onclick="deleteStaff('${s.id}', '${s.name}')">
+              Delete
+            </button>
+          </td>
         </tr>`).join('')
-    : '<tr><td colspan="3" class="text-muted">No staff yet</td></tr>';
+    : '<tr><td colspan="4" class="text-muted">No staff yet</td></tr>';
 }
-
 document.getElementById('addStaffBtn').addEventListener('click', async () => {
   const name = document.getElementById('staffNameInput').value.trim();
   const username = document.getElementById('staffUsername').value.trim();
@@ -271,6 +287,31 @@ document.getElementById('disableBtn').addEventListener('click', async () => {
   document.getElementById('disableQrId').value = '';
   showAlert('disableAlert', 'Card disabled successfully.', 'success');
 });
+// --- Delete Staff ---
+window.deleteStaff = async (id, name) => {
+  const confirmed = confirm(`Delete staff member "${name}"? This cannot be undone.`);
+  if (!confirmed) return;
+
+  const { ok, data } = await apiFetch(`/staff/${id}`, { method: 'DELETE' });
+
+  if (!ok) return showAlert('staffAlert', data.error || 'Failed to delete staff.');
+
+  showAlert('staffAlert', `${name} deleted successfully.`, 'success');
+  loadStaff();
+};
+
+// --- Delete Vendor ---
+window.deleteVendor = async (id, name) => {
+  const confirmed = confirm(`Delete vendor "${name}"? This cannot be undone.`);
+  if (!confirmed) return;
+
+  const { ok, data } = await apiFetch(`/vendors/${id}`, { method: 'DELETE' });
+
+  if (!ok) return showAlert('vendorAlert', data.error || 'Failed to delete vendor.');
+
+  showAlert('vendorAlert', `${name} deleted successfully.`, 'success');
+  loadVendors();
+};
 
 // --- Init ---
 loadSummary();
