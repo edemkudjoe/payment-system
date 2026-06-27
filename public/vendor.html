@@ -56,58 +56,90 @@
       </div>
 
       <!-- Charge Card -->
-      <div class="card" style="max-width: 480px; margin: 0 auto;">
-        <div class="card-title">Charge Attendee</div>
-        <div id="chargeAlert" class="alert alert-error"></div>
+      <!-- Menu Setup -->
+<div class="card" style="max-width: 480px; margin: 0 auto 1.5rem;">
+  <div class="card-title">Menu</div>
+  <div id="menuAlert" class="alert alert-error"></div>
 
-        <!-- Scanner -->
-        <div class="form-group">
-          <label>Scan Attendee QR Card</label>
-          <div id="qrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
-        </div>
-
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
-          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
-          <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
-          <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
-        </div>
-
-        <div class="form-group">
-          <label>QR Code ID</label>
-          <input type="text" id="chargeQrId" placeholder="Attendee QR code ID" autocomplete="off" />
-        </div>
-
-        <!-- Attendee Preview -->
-        <div id="attendeePreview" style="display:none; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
-          <div style="display: flex; justify-content: space-between;">
-            <div>
-              <div style="font-weight: 600;" id="previewName">—</div>
-              <div class="text-muted" style="font-size: 0.8rem;">Attendee</div>
-            </div>
-            <div style="text-align: right;">
-              <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
-              <div style="font-weight: 700; font-size: 1.2rem;" id="previewBalance">—</div>
-            </div>
-          </div>
-        </div>
-
-        <div class="form-group">
-          <label>Amount (₵)</label>
-          <input type="number" id="chargeAmount" placeholder="e.g. 20" min="1" />
-        </div>
-
-        <button class="btn btn-primary" id="chargeBtn">Charge</button>
-
-        <!-- Success Receipt -->
-        <div id="chargeReceipt" style="display:none; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); text-align: center;">
-          <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Payment Successful</div>
-          <div class="text-muted" style="font-size: 0.875rem;" id="receiptDetails"></div>
-        </div>
-      </div>
-
+  <!-- Add Item Form -->
+  <div style="display: flex; gap: 0.75rem; margin-bottom: 1rem;">
+    <div class="form-group" style="margin: 0; flex: 2;">
+      <label>Item Name</label>
+      <input type="text" id="menuItemName" placeholder="e.g. Jollof Rice" />
+    </div>
+    <div class="form-group" style="margin: 0; flex: 1;">
+      <label>Price (₵)</label>
+      <input type="number" id="menuItemPrice" placeholder="e.g. 20" min="1" />
+    </div>
+    <div style="display: flex; align-items: flex-end;">
+      <button class="btn btn-primary w-auto" id="addMenuItemBtn" style="padding: 0.625rem 1rem;">
+        Add
+      </button>
     </div>
   </div>
 
+  <!-- Menu List -->
+  <div id="menuList" style="display: flex; flex-direction: column; gap: 0.5rem;">
+    <div class="text-muted" style="font-size: 0.875rem;">No items yet</div>
+  </div>
+</div>
+
+<!-- Cart -->
+<div class="card" style="max-width: 480px; margin: 0 auto 1.5rem;">
+  <div class="card-title">Charge Attendee</div>
+  <div id="chargeAlert" class="alert alert-error"></div>
+
+  <!-- Scanner -->
+  <div class="form-group">
+    <label>Scan Attendee QR Card</label>
+    <div id="qrScanner" style="width: 100%; border-radius: var(--radius); overflow: hidden;"></div>
+  </div>
+
+  <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+    <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+    <span class="text-muted" style="font-size: 0.8rem;">or enter manually</span>
+    <hr style="flex: 1; border: none; border-top: 1px solid var(--border);" />
+  </div>
+
+  <div class="form-group">
+    <label>QR Code ID</label>
+    <input type="text" id="chargeQrId" placeholder="Attendee QR code ID" autocomplete="off" />
+  </div>
+
+  <!-- Attendee Preview -->
+  <div id="attendeePreview" style="display:none; background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; margin-bottom: 1rem;">
+    <div style="display: flex; justify-content: space-between;">
+      <div>
+        <div style="font-weight: 600;" id="previewName">—</div>
+        <div class="text-muted" style="font-size: 0.8rem;">Attendee</div>
+      </div>
+      <div style="text-align: right;">
+        <div class="text-muted" style="font-size: 0.8rem;">Balance</div>
+        <div style="font-weight: 700; font-size: 1.2rem;" id="previewBalance">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cart Items -->
+  <div id="cartSection" style="display:none; margin-bottom: 1rem;">
+    <div style="font-weight: 600; margin-bottom: 0.5rem;">Cart</div>
+    <div id="cartItems" style="display: flex; flex-direction: column; gap: 0.5rem; margin-bottom: 0.75rem;"></div>
+    <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem; background: var(--bg); border-radius: var(--radius);">
+      <span style="font-weight: 600;">Total</span>
+      <span style="font-weight: 700; font-size: 1.1rem;" id="cartTotal">₵0</span>
+    </div>
+    <div style="display: flex; gap: 0.75rem; margin-top: 0.75rem;">
+      <button class="btn btn-outline" id="clearCartBtn">Clear Cart</button>
+      <button class="btn btn-primary" id="chargeBtn">Charge</button>
+    </div>
+  </div>
+
+  <!-- Success Receipt -->
+  <div id="chargeReceipt" style="display:none; margin-top: 1rem; padding: 1rem; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius); text-align: center;">
+    <div style="font-weight: 600; color: var(--success); margin-bottom: 0.25rem;">Payment Successful</div>
+    <div class="text-muted" style="font-size: 0.875rem;" id="receiptDetails"></div>
+  </div>
+</div>
   <script type="module" src="/js/vendor.js"></script>
-</body>
-</html>
+    </body>
+    </html>
