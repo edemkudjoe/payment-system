@@ -104,15 +104,16 @@ async function loadVendors() {
 document.getElementById('addVendorBtn').addEventListener('click', async () => {
   const name = document.getElementById('vendorName').value.trim();
   const description = document.getElementById('vendorDesc').value.trim();
+  const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
 
-  if (!name) return showAlert('vendorAlert', 'Vendor name is required.');
+  if (!name || !vendor_code) return showAlert('vendorAlert', 'Vendor name and code are required.');
 
   const btn = document.getElementById('addVendorBtn');
   btn.disabled = true;
 
   const { ok, data } = await apiFetch('/vendors', {
     method: 'POST',
-    body: { name, description }
+    body: { name, description, vendor_code }
   });
 
   btn.disabled = false;
@@ -122,9 +123,9 @@ document.getElementById('addVendorBtn').addEventListener('click', async () => {
   showAlert('vendorAlert', 'Vendor added successfully.', 'success');
   document.getElementById('vendorName').value = '';
   document.getElementById('vendorDesc').value = '';
+  document.getElementById('vendorCode').value = '';
   loadVendors();
 });
-
 // --- Staff ---
 async function loadStaff() {
   const { ok, data } = await apiFetch(`/events/${event_id}`);
