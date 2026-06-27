@@ -113,11 +113,12 @@ app.post('/api/staff/auth', async (req, res) => {
   }
 
   const { data: staff, error: staffError } = await supabase
-    .from('staff')
-    .select('id, name, role, pin')
-    .eq('event_id', event.id)
-    .eq('username', username)
-    .single();
+  .from('staff')
+  .select('id, name, role, pin')
+  .eq('event_id', event.id)
+  .eq('username', username)
+  .eq('is_deleted', false)
+  .single();
 
   if (staffError || !staff) {
     return res.status(404).json({ error: 'Staff not found' });
@@ -172,18 +173,21 @@ app.get('/api/events/:id', authenticate(['admin', 'manager', 'cashier']), async 
   }
 
   const { data, error } = await supabase
-    .from('events')
-    .select(`
-      id, name, date, event_code, is_active, created_at,
-      vendors ( id, name, balance ),
-      staff ( id, name, role, username )
-    `)
-    .eq('id', id)
-    .single();
+  .from('events')
+  .select(`
+    id, name, date, event_code, is_active, created_at,
+    vendors ( id, name, balance, vendor_code, description, is_deleted ),
+    staff ( id, name, role, username, is_deleted )
+  `)
+  .eq('id', id)
+  .single();
 
   if (error || !data) return res.status(404).json({ error: 'Event not found' });
 
-  return res.status(200).json(data);
+data.vendors = data.vendors.filter(v => !v.is_deleted);
+data.staff = data.staff.filter(s => !s.is_deleted);
+
+return res.status(200).json(data);
 });
 
 app.post('/api/events/:id/staff', authenticate(['admin']), async (req, res) => {
@@ -228,9 +232,10 @@ app.get('/api/events/:id/summary', authenticate(['admin', 'manager']), async (re
   if (txError) return res.status(500).json({ error: txError.message });
 
   const { data: vendors, error: vendorError } = await supabase
-    .from('vendors')
-    .select('id, name, balance')
-    .eq('event_id', id);
+  .from('vendors')
+  .select('id, name, balance')
+  .eq('event_id', id)
+  .eq('is_deleted', false);
 
   if (vendorError) return res.status(500).json({ error: vendorError.message });
 
@@ -502,11 +507,12 @@ app.post('/api/vendors/login', async (req, res) => {
   }
 
   const { data: vendor, error: vendorError } = await supabase
-    .from('vendors')
-    .select('id, name, description, balance, pin')
-    .eq('vendor_code', vendor_code)
-    .eq('event_id', event.id)
-    .single();
+  .from('vendors')
+  .select('id, name, description, balance, pin')
+  .eq('vendor_code', vendor_code)
+  .eq('event_id', event.id)
+  .eq('is_deleted', false)
+  .single();
 
   if (vendorError || !vendor) {
     return res.status(404).json({ error: 'Vendor not found for this event' });
