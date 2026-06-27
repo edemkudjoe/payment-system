@@ -61,10 +61,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 let activateScanner = null;
 
 // Init activate scanner when page loads
-activateScanner = initScanner('activateQrScanner', (decodedText) => {
-  document.getElementById('activateQrId').value = decodedText;
-  if (activateScanner) activateScanner.pause();
-});
+if (btn.dataset.tab === 'register' && !activateScanner) {
+  activateScanner = initScanner('activateQrScanner', (decodedText) => {
+    document.getElementById('activateQrId').value = decodedText;
+    if (activateScanner) activateScanner.pause();
+  });
+}
 
 document.getElementById('activateBtn').addEventListener('click', async () => {
   const qr_code_id = document.getElementById('activateQrId').value.trim();
