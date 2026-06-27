@@ -295,19 +295,20 @@ document.getElementById('chargeQrId').addEventListener('change', (e) => {
 // --- Charge ---
 document.getElementById('chargeBtn').addEventListener('click', async () => {
   const qr_code_id = document.getElementById('chargeQrId').value.trim();
-  const amount = parseInt(document.getElementById('chargeAmount').value);
 
   if (!qr_code_id) return showAlert('chargeAlert', 'Scan or enter a QR code ID.');
-  if (!amount || amount <= 0) return showAlert('chargeAlert', 'Enter a valid amount.');
+  if (!cart.length) return showAlert('chargeAlert', 'Add items to the cart first.');
+
+  const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   const btn = document.getElementById('chargeBtn');
   btn.disabled = true;
   btn.textContent = 'Processing...';
 
   const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/charge`, {
-  method: 'POST',
-  body: { qr_code_id, amount, event_id: vendorSession.event_id }
-    });
+    method: 'POST',
+    body: { qr_code_id, amount: total, event_id: vendorSession.event_id }
+  });
 
   btn.disabled = false;
   btn.textContent = 'Charge';
@@ -318,6 +319,24 @@ document.getElementById('chargeBtn').addEventListener('click', async () => {
     return;
   }
 
+  // Show receipt
+  const itemsSummary = cart.map(i => `${i.name} x${i.quantity}`).join(', ');
+  document.getElementById('receiptDetails').textContent =
+    `₵${total} charged · ${itemsSummary} · Attendee balance: ₵${data.attendee_new_balance}`;
+  document.getElementById('chargeReceipt').style.display = 'block';
+  document.getElementById('currentBalance').textContent = `₵${data.vendor_new_balance}`;
+
+  // Reset
+  cart = [];
+  renderCart();
+
+  setTimeout(() => {
+    document.getElementById('chargeQrId').value = '';
+    document.getElementById('attendeePreview').style.display = 'none';
+    document.getElementById('chargeReceipt').style.display = 'none';
+    if (html5QrCode) html5QrCode.resume();
+  }, 3000);
+});
   // Show receipt
   document.getElementById('receiptDetails').textContent =
     `₵${amount} charged · Attendee balance: ₵${data.attendee_new_balance}`;
