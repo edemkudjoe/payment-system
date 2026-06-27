@@ -106,15 +106,18 @@ document.getElementById('addVendorBtn').addEventListener('click', async () => {
   const name = document.getElementById('vendorName').value.trim();
   const description = document.getElementById('vendorDesc').value.trim();
   const vendor_code = document.getElementById('vendorCode').value.trim().toUpperCase();
+  const pin = document.getElementById('vendorPin').value.trim();
 
-  if (!name || !vendor_code) return showAlert('vendorAlert', 'Vendor name and code are required.');
+  if (!name || !vendor_code || !pin) {
+    return showAlert('vendorAlert', 'Vendor name, code and PIN are required.');
+  }
 
   const btn = document.getElementById('addVendorBtn');
   btn.disabled = true;
 
   const { ok, data } = await apiFetch('/vendors', {
     method: 'POST',
-    body: { name, description, vendor_code }
+    body: { name, description, vendor_code, pin }
   });
 
   btn.disabled = false;
@@ -125,6 +128,7 @@ document.getElementById('addVendorBtn').addEventListener('click', async () => {
   document.getElementById('vendorName').value = '';
   document.getElementById('vendorDesc').value = '';
   document.getElementById('vendorCode').value = '';
+  document.getElementById('vendorPin').value = '';
   loadVendors();
 });
 // --- Staff ---
