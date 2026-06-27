@@ -32,7 +32,6 @@ async function loadSummary() {
   document.getElementById('statDonated').textContent = `₵${data.total_donated}`;
   document.getElementById('statRemaining').textContent = `₵${data.total_remaining_balance}`;
   document.getElementById('statAttendees').textContent = data.total_attendees;
-  
 
   const tbody = document.getElementById('vendorBreakdown');
   tbody.innerHTML = data.vendor_breakdown.length
@@ -44,7 +43,6 @@ async function loadSummary() {
         </tr>`).join('')
     : '<tr><td colspan="3" class="text-muted">No vendors yet</td></tr>';
 }
-
 
 // --- Transactions ---
 async function loadTransactions() {
@@ -108,6 +106,7 @@ async function loadVendors() {
         </tr>`).join('')
     : '<tr><td colspan="5" class="text-muted">No vendors yet</td></tr>';
 }
+
 document.getElementById('addVendorBtn').addEventListener('click', async () => {
   const name = document.getElementById('vendorName').value.trim();
   const description = document.getElementById('vendorDesc').value.trim();
@@ -137,6 +136,7 @@ document.getElementById('addVendorBtn').addEventListener('click', async () => {
   document.getElementById('vendorPin').value = '';
   loadVendors();
 });
+
 // --- Staff ---
 async function loadStaff() {
   const { ok, data } = await apiFetch(`/events/${event_id}`);
@@ -157,6 +157,7 @@ async function loadStaff() {
         </tr>`).join('')
     : '<tr><td colspan="4" class="text-muted">No staff yet</td></tr>';
 }
+
 document.getElementById('addStaffBtn').addEventListener('click', async () => {
   const name = document.getElementById('staffNameInput').value.trim();
   const username = document.getElementById('staffUsername').value.trim();
@@ -265,11 +266,10 @@ document.getElementById('disableBtn').addEventListener('click', async () => {
   const qr_code_id = document.getElementById('disableQrId').value.trim();
   if (!qr_code_id) return showAlert('disableAlert', 'Enter a QR code ID.');
 
-  // Look up attendee by QR code ID first to get their UUID
   const { ok: lookupOk, data: lookupData } = await apiFetch(`/attendees/qr/${qr_code_id}`);
   if (!lookupOk) return showAlert('disableAlert', lookupData.error || 'Card not found.');
 
-  const confirmed = confirm(`Disable this card? This cannot be undone easily.`);
+  const confirmed = confirm('Disable this card? This cannot be undone easily.');
   if (!confirmed) return;
 
   const { ok, data } = await apiFetch(`/attendees/${lookupData.id}/disable`, {
@@ -281,6 +281,7 @@ document.getElementById('disableBtn').addEventListener('click', async () => {
   document.getElementById('disableQrId').value = '';
   showAlert('disableAlert', 'Card disabled successfully.', 'success');
 });
+
 // --- Delete Staff ---
 window.deleteStaff = async (id, name) => {
   const confirmed = confirm(`Delete staff member "${name}"? This cannot be undone.`);
@@ -312,7 +313,7 @@ document.getElementById('deleteAllBtn').addEventListener('click', async () => {
   const first = confirm('Are you sure you want to delete ALL event data? This includes all transactions, attendees, and resets vendors and staff.');
   if (!first) return;
 
-  const second = confirm('This cannot be undone. Type OK to confirm.');
+  const second = confirm('This cannot be undone. Confirm once more to proceed.');
   if (!second) return;
 
   const { ok, data } = await apiFetch(`/events/${event_id}/data`, {
