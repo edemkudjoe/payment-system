@@ -601,6 +601,55 @@ app.post('/api/vendors/:id/charge', async (req, res) => {
   });
 });
 
+// Soft delete staff
+app.delete('/api/staff/:id', authenticate(['admin']), async (req, res) => {
+  const { id } = req.params;
+
+  if (id === req.staff.staff_id) {
+    return res.status(400).json({ error: 'You cannot delete your own account' });
+  }
+
+  const { error } = await supabase
+    .from('staff')
+    .update({ is_deleted: true })
+    .eq('id', id)
+    .eq('event_id', req.staff.event_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'Staff deleted successfully' });
+});
+
+// Soft delete vendor
+app.delete('/api/vendors/:id', authenticate(['admin']), async (req, res) => {
+  const { id } = req.params;
+
+  const { error } = await supabase
+    .from('vendors')
+    .update({ is_deleted: true })
+    .eq('id', id)
+    .eq('event_id', req.staff.event_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'Vendor deleted successfully' });
+});
+
+// Delete all event data
+app.delete('/api/events/:id/data', authenticate(['admin']), async (req, res) => {
+  const { id } = req.params;
+
+  if (req.staff.event_id !== id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { error } = await supabase.rpc('delete_event_data', { p_event_id: id });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'All event data deleted successfully' });
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
