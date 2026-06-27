@@ -40,6 +40,12 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-content').forEach(t => t.style.display = 'none');
     document.getElementById(`tab-${btn.dataset.tab}`).style.display = 'block';
 
+    if (btn.dataset.tab === 'register' && !activateScanner) {
+  activateScanner = initScanner('activateQrScanner', (decodedText) => {
+    document.getElementById('activateQrId').value = decodedText;
+    if (activateScanner) activateScanner.pause();
+  });
+}
     // Start scanner for the active tab
     if (btn.dataset.tab === 'topup' && !topupScanner) {
       topupScanner = initScanner('topupQrScanner', (decodedText) => {
@@ -60,13 +66,8 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
 // --- Activate Card ---
 let activateScanner = null;
 
-// Init activate scanner when page loads
-if (btn.dataset.tab === 'register' && !activateScanner) {
-  activateScanner = initScanner('activateQrScanner', (decodedText) => {
-    document.getElementById('activateQrId').value = decodedText;
-    if (activateScanner) activateScanner.pause();
-  });
-}
+
+
 
 document.getElementById('activateBtn').addEventListener('click', async () => {
   const qr_code_id = document.getElementById('activateQrId').value.trim();
