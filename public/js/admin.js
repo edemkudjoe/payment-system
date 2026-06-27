@@ -170,6 +170,102 @@ document.getElementById('addStaffBtn').addEventListener('click', async () => {
   loadStaff();
 });
 
+// --- Cards ---
+let generatedCards = [];
+
+document.getElementById('generateBtn').addEventListener('click', async () => {
+  const count = parseInt(document.getElementById('cardCount').value);
+
+  if (!count || count < 1 || count > 500) {
+    return showAlert('generateAlert', 'Enter a number between 1 and 500.');
+  }
+
+  const btn = document.getElementById('generateBtn');
+  btn.disabled = true;
+  btn.textContent = 'Generating...';
+
+  const { ok, data } = await apiFetch('/attendees/generate', {
+    method: 'POST',
+    body: { count }
+  });
+
+  btn.disabled = false;
+  btn.textContent = 'Generate';
+
+  if (!ok) return showAlert('generateAlert', data.error || 'Failed to generate cards.');
+
+  generatedCards = data.cards;
+  document.getElementById('generatedCount').textContent = `${data.count} cards generated`;
+  document.getElementById('printSheet').style.display = 'block';
+
+  const grid = document.getElementById('cardGrid');
+  grid.innerHTML = data.cards.map(card => `
+    <div style="background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1rem; text-align: center;">
+      <img src="${card.qr_code_image}" style="width: 120px; height: 120px;" />
+      <div style="font-size: 0.7rem; color: var(--muted); margin-top: 0.5rem; word-break: break-all;">
+        ${card.qr_code_id}
+      </div>
+    </div>
+  `).join('');
+
+  showAlert('generateAlert', `${data.count} cards generated successfully.`, 'success');
+});
+
+document.getElementById('printCardsBtn').addEventListener('click', () => {
+  if (!generatedCards.length) return;
+
+  const win = window.open('', '_blank');
+  win.document.write(`
+    <html>
+      <head>
+        <style>
+          body { font-family: system-ui; margin: 0; padding: 1rem; }
+          .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+          .card { border: 1px dashed #ccc; border-radius: 8px; padding: 1rem; text-align: center; page-break-inside: avoid; }
+          .card img { width: 140px; height: 140px; }
+          .card p { font-size: 0.65rem; color: #555; margin-top: 0.5rem; word-break: break-all; }
+          .card h4 { font-size: 0.8rem; margin-bottom: 0.5rem; }
+          @media print { body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="grid">
+          ${generatedCards.map(card => `
+            <div class="card">
+              <h4>Event Payment Card</h4>
+              <img src="${card.qr_code_image}" />
+              <p>${card.qr_code_id}</p>
+            </div>
+          `).join('')}
+        </div>
+      </body>
+    </html>
+  `);
+  win.document.close();
+  win.print();
+});
+
+document.getElementById('disableBtn').addEventListener('click', async () => {
+  const qr_code_id = document.getElementById('disableQrId').value.trim();
+  if (!qr_code_id) return showAlert('disableAlert', 'Enter a QR code ID.');
+
+  // Look up attendee by QR code ID first to get their UUID
+  const { ok: lookupOk, data: lookupData } = await apiFetch(`/attendees/qr/${qr_code_id}`);
+  if (!lookupOk) return showAlert('disableAlert', lookupData.error || 'Card not found.');
+
+  const confirmed = confirm(`Disable this card? This cannot be undone easily.`);
+  if (!confirmed) return;
+
+  const { ok, data } = await apiFetch(`/attendees/${lookupData.id}/disable`, {
+    method: 'POST'
+  });
+
+  if (!ok) return showAlert('disableAlert', data.error || 'Failed to disable card.');
+
+  document.getElementById('disableQrId').value = '';
+  showAlert('disableAlert', 'Card disabled successfully.', 'success');
+});
+
 // --- Init ---
 loadSummary();
 loadTransactions();
