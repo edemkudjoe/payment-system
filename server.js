@@ -759,6 +759,53 @@ app.post('/api/vendors/:id/menu/:item_id/toggle', async (req, res) => {
   return res.status(200).json(data);
 });
 
+// Export transactions as CSV
+app.get('/api/events/:id/export', authenticate(['admin', 'manager']), async (req, res) => {
+  const { id } = req.params;
+
+  if (req.staff.event_id !== id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { data, error } = await supabase
+    .from('transactions')
+    .select(`
+      id,
+      transaction_type,
+      amount,
+      created_at,
+      attendees ( name, qr_code_id ),
+      vendors ( name ),
+      staff ( name )
+    `)
+    .eq('event_id', id)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  // Build CSV
+  const headers = ['ID', 'Type', 'Amount (₵)', 'Attendee', 'QR Code ID', 'Vendor', 'Staff', 'Time'];
+
+  const rows = data.map(tx => [
+    tx.id,
+    tx.transaction_type,
+    tx.amount,
+    tx.attendees?.name || 'Unnamed',
+    tx.attendees?.qr_code_id || '—',
+    tx.vendors?.name || '—',
+    tx.staff?.name || '—',
+    new Date(tx.created_at).toLocaleString()
+  ]);
+
+  const csv = [headers, ...rows]
+    .map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
+    .join('\n');
+
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="transactions-${id}.csv"`);
+  return res.send(csv);
+});
+
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
