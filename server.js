@@ -284,7 +284,7 @@ app.get('/api/events/:id/transactions', authenticate(['admin', 'manager']), asyn
     return res.status(403).json({ error: 'Access denied' });
   }
 
-  const { type, from, to } = req.query;
+  const { type, from, to, vendor_id, attendee_qr } = req.query;
 
   let query = supabase
     .from('transactions')
@@ -300,14 +300,19 @@ app.get('/api/events/:id/transactions', authenticate(['admin', 'manager']), asyn
   if (type) query = query.eq('transaction_type', type);
   if (from) query = query.gte('created_at', from);
   if (to) query = query.lte('created_at', to);
+  if (vendor_id) query = query.eq('vendor_id', vendor_id);
 
   const { data, error } = await query;
 
   if (error) return res.status(500).json({ error: error.message });
 
-  return res.status(200).json(data);
-});
+  // Filter by attendee QR code
+  const filtered = attendee_qr
+    ? data.filter(tx => tx.attendees?.qr_code_id === attendee_qr)
+    : data;
 
+  return res.status(200).json(filtered);
+});
 // ─── Attendees ────────────────────────────────────────────────────────────────
 
 // Generate a batch of inactive QR cards
