@@ -767,7 +767,9 @@ app.get('/api/events/:id/export', authenticate(['admin', 'manager']), async (req
     return res.status(403).json({ error: 'Access denied' });
   }
 
-  const { data, error } = await supabase
+  const { type, from, to, vendor_id, attendee_qr } = req.query;
+
+  let query = supabase
     .from('transactions')
     .select(`
       id,
@@ -781,12 +783,23 @@ app.get('/api/events/:id/export', authenticate(['admin', 'manager']), async (req
     .eq('event_id', id)
     .order('created_at', { ascending: false });
 
+  if (type) query = query.eq('transaction_type', type);
+  if (from) query = query.gte('created_at', from);
+  if (to) query = query.lte('created_at', to);
+  if (vendor_id) query = query.eq('vendor_id', vendor_id);
+
+  const { data, error } = await query;
+
   if (error) return res.status(500).json({ error: error.message });
 
-  // Build CSV
+  // Filter by attendee QR code client side since it's a join field
+  const filtered = attendee_qr
+    ? data.filter(tx => tx.attendees?.qr_code_id === attendee_qr)
+    : data;
+
   const headers = ['ID', 'Type', 'Amount (₵)', 'Attendee', 'QR Code ID', 'Vendor', 'Staff', 'Time'];
 
-  const rows = data.map(tx => [
+  const rows = filtered.map(tx => [
     tx.id,
     tx.transaction_type,
     tx.amount,
@@ -805,7 +818,6 @@ app.get('/api/events/:id/export', authenticate(['admin', 'manager']), async (req
   res.setHeader('Content-Disposition', `attachment; filename="transactions-${id}.csv"`);
   return res.send(csv);
 });
-
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
