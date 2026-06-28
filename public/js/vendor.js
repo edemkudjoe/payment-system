@@ -313,16 +313,19 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  const stage2Summary = document.getElementById('stage2CartSummary');
-  const chargeBtnAmount = document.getElementById('chargeBtnAmount');
-  const chargeBtn = document.getElementById('chargeBtn');
-  const attendeePreview = document.getElementById('attendeePreview');
-  const chargeQrId = document.getElementById('chargeQrId');
+  // Force DOM query at click time
+  const stage2Summary = document.querySelector('#stage2CartSummary');
+  const chargeBtnAmount = document.querySelector('#chargeBtnAmount');
+  const chargeBtn = document.querySelector('#chargeBtn');
+  const attendeePreview = document.querySelector('#attendeePreview');
+  const chargeQrId = document.querySelector('#chargeQrId');
 
-  console.log({ stage2Summary, chargeBtnAmount, chargeBtn, attendeePreview, chargeQrId });
+  console.log('stage2Summary:', stage2Summary);
+  console.log('chargeBtnAmount:', chargeBtnAmount);
+  console.log('chargeBtn:', chargeBtn);
 
   if (!stage2Summary || !chargeBtnAmount || !chargeBtn) {
-    console.error('Missing element — check IDs in vendor.html');
+    console.error('Missing element');
     return;
   }
 
@@ -347,6 +350,7 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
 
   goToStage(2);
 });
+
 document.getElementById('backToCartBtn').addEventListener('click', () => {
   goToStage(1);
 });
