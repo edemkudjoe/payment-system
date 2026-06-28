@@ -142,11 +142,8 @@ function goToStage(n) {
   if (n === 2) {
     initScanner();
   } else {
-    // Fully destroy scanner when leaving stage 2
-    if (html5QrCode) {
-      html5QrCode.stop().catch(() => {}).finally(() => {
-        html5QrCode = null;
-      });
+    if (html5QrCode && scannerStarted) {
+      try { html5QrCode.pause(); } catch { /* ignore */ }
     }
   }
 }
@@ -344,23 +341,21 @@ document.getElementById('backToCartBtn').addEventListener('click', () => {
 });
 
 // --- Scanner ---
+// --- Scanner ---
+let scannerStarted = false;
+
 function initScanner() {
-  if (html5QrCode) {
+  if (scannerStarted) {
     try {
-      html5QrCode.stop()
-        .catch(() => {})
-        .finally(() => {
-          html5QrCode = new Html5Qrcode('qrScanner');
-          startScanner();
-        });
+      html5QrCode.resume();
     } catch {
-      html5QrCode = new Html5Qrcode('qrScanner');
-      startScanner();
+      restartScanner();
     }
-  } else {
-    html5QrCode = new Html5Qrcode('qrScanner');
-    startScanner();
+    return;
   }
+
+  html5QrCode = new Html5Qrcode('qrScanner');
+  startScanner();
 }
 
 function startScanner() {
@@ -373,11 +368,20 @@ function startScanner() {
       lookupAttendee(decodedText);
     },
     () => {}
-  ).catch(() => {
+  ).then(() => {
+    scannerStarted = true;
+  }).catch(() => {
     document.getElementById('qrScanner').style.display = 'none';
   });
 }
 
+function restartScanner() {
+  scannerStarted = false;
+  html5QrCode.stop().catch(() => {}).finally(() => {
+    html5QrCode = new Html5Qrcode('qrScanner');
+    startScanner();
+  });
+}
 // --- Attendee Lookup ---
 async function lookupAttendee(qr_code_id) {
   const { ok, data } = await apiFetch(`/attendees/qr/${qr_code_id}`);
@@ -449,5 +453,8 @@ document.getElementById('newSaleBtn').addEventListener('click', () => {
   cart = [];
   currentAttendee = null;
   renderCart();
+  document.getElementById('chargeQrId').value = '';
+  document.getElementById('attendeePreview').style.display = 'none';
+  document.getElementById('chargeBtn').style.display = 'none';
   goToStage(1);
 });
