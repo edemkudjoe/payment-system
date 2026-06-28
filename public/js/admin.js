@@ -44,6 +44,31 @@ async function loadSummary() {
     : '<tr><td colspan="3" class="text-muted">No vendors yet</td></tr>';
 }
 
+// --- Real-time Summary ---
+function initRealtime() {
+  const client = window.supabase.createClient(
+    window.SUPABASE_URL,
+    window.SUPABASE_ANON_KEY
+  );
+
+  client
+    .channel('admin-summary')
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'transactions',
+        filter: `event_id=eq.${event_id}`
+      },
+      () => {
+        loadSummary();
+        loadTransactions();
+      }
+    )
+    .subscribe();
+}
+
 // --- Transactions ---
 async function loadTransactions() {
   const type = document.getElementById('filterType').value;
@@ -334,3 +359,4 @@ loadSummary();
 loadTransactions();
 loadVendors();
 loadStaff();
+initRealtime();
