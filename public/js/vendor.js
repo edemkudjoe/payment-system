@@ -394,18 +394,12 @@ async function lookupAttendee(qr_code_id) {
     return;
   }
 
-  currentAttendee = data;
+  currentAttendee = { ...data, qr_code_id };
   document.getElementById('previewName').textContent = data.name || 'Unnamed Attendee';
   document.getElementById('previewBalance').textContent = `₵${data.balance}`;
   document.getElementById('attendeePreview').style.display = 'block';
   document.getElementById('chargeBtn').style.display = 'block';
 }
-
-document.getElementById('chargeQrId').addEventListener('change', (e) => {
-  const val = e.target.value.trim();
-  if (val) lookupAttendee(val);
-});
-
 // --- Charge ---
 document.getElementById('chargeBtn').addEventListener('click', async () => {
   if (!currentAttendee) return showAlert('chargeAlert', 'Scan an attendee card first.');
@@ -418,14 +412,13 @@ document.getElementById('chargeBtn').addEventListener('click', async () => {
   btn.textContent = 'Processing...';
 
   const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/charge`, {
-    method: 'POST',
-    body: {
-      qr_code_id: currentAttendee.qr_code_id || document.getElementById('chargeQrId').value.trim(),
-      amount: total,
-      event_id: vendorSession.event_id
-    }
-  });
-
+  method: 'POST',
+  body: {
+    qr_code_id: currentAttendee.qr_code_id,
+    amount: total,
+    event_id: vendorSession.event_id
+  }
+});
   btn.disabled = false;
   btn.textContent = `Charge ₵${total}`;
 
