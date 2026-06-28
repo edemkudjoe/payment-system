@@ -171,7 +171,7 @@ async function loadBalance() {
   document.getElementById('currentBalance').textContent = `₵${data.balance}`;
 }
 
-document.getElementById('refreshBalance').addEventListener('click', loadBalance);
+
 
 // --- Stages ---
 function goToStage(n) {
