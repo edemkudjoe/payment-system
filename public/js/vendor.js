@@ -38,6 +38,51 @@ async function apiFetch(path, options = {}) {
   return { ok: res.ok, status: res.status, data };
 }
 
+// --- Global functions for inline onclick handlers ---
+window.addToCart = (item_id) => {
+  const item = menuItems.find(i => i.id === item_id);
+  if (!item) return;
+  const existing = cart.find(i => i.menu_item_id === item_id);
+  if (existing) {
+    existing.quantity += 1;
+  } else {
+    cart.push({ menu_item_id: item_id, name: item.name, price: item.price, quantity: 1 });
+  }
+  renderCart();
+};
+
+window.updateCartQty = (index, delta) => {
+  cart[index].quantity += delta;
+  if (cart[index].quantity <= 0) cart.splice(index, 1);
+  renderCart();
+};
+
+window.toggleMenuItem = async (item_id) => {
+  const { ok, data } = await apiFetch(
+    `/vendors/${vendorSession.vendor.id}/menu/${item_id}/toggle`,
+    { method: 'POST', body: { event_id: vendorSession.event_id } }
+  );
+  if (!ok) return;
+  menuItems = menuItems.map(i => i.id === item_id ? data : i);
+  renderMenu();
+  renderMenuGrid();
+};
+
+window.deleteMenuItem = async (item_id) => {
+  const confirmed = confirm('Remove this item from the menu?');
+  if (!confirmed) return;
+  const { ok } = await apiFetch(
+    `/vendors/${vendorSession.vendor.id}/menu/${item_id}?event_id=${vendorSession.event_id}`,
+    { method: 'DELETE' }
+  );
+  if (!ok) return;
+  menuItems = menuItems.filter(i => i.id !== item_id);
+  cart = cart.filter(i => i.menu_item_id !== item_id);
+  renderMenu();
+  renderMenuGrid();
+  renderCart();
+};
+
 // --- Restore session ---
 const { vendor, event_id } = getVendorSession();
 if (vendor && event_id) {
@@ -234,48 +279,7 @@ document.getElementById('addMenuItemBtn').addEventListener('click', async () => 
   renderMenuGrid();
 });
 
-window.toggleMenuItem = async (item_id) => {
-  const { ok, data } = await apiFetch(
-    `/vendors/${vendorSession.vendor.id}/menu/${item_id}/toggle`,
-    { method: 'POST', body: { event_id: vendorSession.event_id } }
-  );
-  if (!ok) return;
-  menuItems = menuItems.map(i => i.id === item_id ? data : i);
-  renderMenu();
-  renderMenuGrid();
-};
-
-window.deleteMenuItem = async (item_id) => {
-  const confirmed = confirm('Remove this item from the menu?');
-  if (!confirmed) return;
-
-  const { ok } = await apiFetch(
-    `/vendors/${vendorSession.vendor.id}/menu/${item_id}?event_id=${vendorSession.event_id}`,
-    { method: 'DELETE' }
-  );
-  if (!ok) return;
-
-  menuItems = menuItems.filter(i => i.id !== item_id);
-  cart = cart.filter(i => i.menu_item_id !== item_id);
-  renderMenu();
-  renderMenuGrid();
-  renderCart();
-};
-
 // --- Cart ---
-window.addToCart = (item_id) => {
-  const item = menuItems.find(i => i.id === item_id);
-  if (!item) return;
-
-  const existing = cart.find(i => i.menu_item_id === item_id);
-  if (existing) {
-    existing.quantity += 1;
-  } else {
-    cart.push({ menu_item_id: item_id, name: item.name, price: item.price, quantity: 1 });
-  }
-  renderCart();
-};
-
 function renderCart() {
   const summary = document.getElementById('cartSummary');
   const emptyMsg = document.getElementById('emptyCartMsg');
@@ -305,12 +309,6 @@ function renderCart() {
   document.getElementById('cartTotalDisplay').textContent = `₵${total}`;
 }
 
-window.updateCartQty = (index, delta) => {
-  cart[index].quantity += delta;
-  if (cart[index].quantity <= 0) cart.splice(index, 1);
-  renderCart();
-};
-
 document.getElementById('clearCartBtn').addEventListener('click', () => {
   cart = [];
   renderCart();
@@ -321,12 +319,7 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  const stage2Summary = document.getElementById('stage2CartSummary');
-  const chargeBtn = document.getElementById('chargeBtn');
-  const attendeePreview = document.getElementById('attendeePreview');
-  const chargeQrId = document.getElementById('chargeQrId');
-
-  stage2Summary.innerHTML = `
+  document.getElementById('stage2CartSummary').innerHTML = `
     ${cart.map(i => `
       <div class="cart-summary-row">
         <span>${i.name} x${i.quantity}</span>
@@ -339,10 +332,11 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
     </div>
   `;
 
+  const chargeBtn = document.getElementById('chargeBtn');
   chargeBtn.innerHTML = `Charge <span id="chargeBtnAmount">₵${total}</span>`;
   chargeBtn.style.display = 'none';
-  attendeePreview.style.display = 'none';
-  chargeQrId.value = '';
+  document.getElementById('attendeePreview').style.display = 'none';
+  document.getElementById('chargeQrId').value = '';
   currentAttendee = null;
 
   goToStage(2);
@@ -362,7 +356,6 @@ function initScanner() {
     }
     return;
   }
-
   html5QrCode = new Html5Qrcode('qrScanner');
   startScanner();
 }
