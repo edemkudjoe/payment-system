@@ -126,7 +126,6 @@ function goToStage(n) {
   document.querySelectorAll('.stage').forEach(s => s.classList.remove('active'));
   document.getElementById(`stage${n}`).classList.add('active');
 
-  // Update dots
   for (let i = 1; i <= 3; i++) {
     const dot = document.getElementById(`dot${i}`);
     dot.className = 'stage-dot';
@@ -134,17 +133,23 @@ function goToStage(n) {
     else if (i === n) dot.classList.add('active');
   }
 
-  // Update lines
   for (let i = 1; i <= 2; i++) {
     const line = document.getElementById(`line${i}`);
     line.className = 'stage-line';
     if (i < n) line.classList.add('done');
   }
 
-  if (n === 2) initScanner();
-  if (n !== 2 && html5QrCode) html5QrCode.stop().catch(() => {});
+  if (n === 2) {
+    initScanner();
+  } else {
+    // Fully destroy scanner when leaving stage 2
+    if (html5QrCode) {
+      html5QrCode.stop().catch(() => {}).finally(() => {
+        html5QrCode = null;
+      });
+    }
+  }
 }
-
 // --- Menu ---
 async function loadMenu() {
   const { ok, data } = await apiFetch(
