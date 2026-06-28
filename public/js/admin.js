@@ -152,6 +152,11 @@ async function loadVendors() {
   const { ok, data } = await apiFetch(`/events/${event_id}`);
   if (!ok) return;
 
+  // Populate vendor filter dropdown
+  const filterVendor = document.getElementById('filterVendor');
+  filterVendor.innerHTML = '<option value="">All Vendors</option>' +
+    data.vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+
   const tbody = document.getElementById('vendorList');
   tbody.innerHTML = data.vendors.length
     ? data.vendors.map(v => `
@@ -168,7 +173,6 @@ async function loadVendors() {
         </tr>`).join('')
     : '<tr><td colspan="5" class="text-muted">No vendors yet</td></tr>';
 }
-
 document.getElementById('addVendorBtn').addEventListener('click', async () => {
   const name = document.getElementById('vendorName').value.trim();
   const description = document.getElementById('vendorDesc').value.trim();
