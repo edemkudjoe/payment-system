@@ -110,6 +110,28 @@ async function loadTransactions() {
 
 document.getElementById('filterBtn').addEventListener('click', loadTransactions);
 
+document.getElementById('exportBtn').addEventListener('click', () => {
+  const { token } = getSession();
+  const url = `/api/events/${event_id}/export`;
+
+  // Use fetch to download with auth header
+  fetch(url, {
+    headers: { Authorization: `Bearer ${token}` }
+  })
+    .then(res => {
+      if (!res.ok) throw new Error('Export failed');
+      return res.blob();
+    })
+    .then(blob => {
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = `transactions-${new Date().toISOString().split('T')[0]}.csv`;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    })
+    .catch(() => showAlert('summaryAlert', 'Failed to export transactions.'));
+});
+
 // --- Vendors ---
 async function loadVendors() {
   const { ok, data } = await apiFetch(`/events/${event_id}`);
