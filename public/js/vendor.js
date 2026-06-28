@@ -416,32 +416,35 @@ async function lookupAttendee(qr_code_id) {
   document.getElementById('chargeBtn').style.display = 'block';
 }
 // --- Charge ---
-const btn = document.getElementById('chargeBtn');
-btn.disabled = true;
-btn.innerHTML = 'Processing...';
+document.getElementById('chargeBtn').addEventListener('click', async () => {
+  if (!currentAttendee) return showAlert('chargeAlert', 'Scan an attendee card first.');
+  if (!cart.length) return showAlert('chargeAlert', 'Cart is empty.');
 
-const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/charge`, {
-  method: 'POST',
-  body: {
-    qr_code_id: currentAttendee.qr_code_id,
-    amount: total,
-    event_id: vendorSession.event_id
+  const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+  const btn = document.getElementById('chargeBtn');
+  btn.disabled = true;
+  btn.innerHTML = 'Processing...';
+
+  const { ok, data } = await apiFetch(`/vendors/${vendorSession.vendor.id}/charge`, {
+    method: 'POST',
+    body: {
+      qr_code_id: currentAttendee.qr_code_id,
+      amount: total,
+      event_id: vendorSession.event_id
+    }
+  });
+
+  btn.disabled = false;
+  btn.innerHTML = `Charge <span id="chargeBtnAmount"></span>`;
+
+  if (!ok) {
+    showAlert('chargeAlert', data.error || 'Charge failed.');
+    if (html5QrCode) html5QrCode.resume();
+    return;
   }
-});
 
-btn.disabled = false;
-btn.innerHTML = `Charge <span id="chargeBtnAmount"></span>`;
-
-if (!ok) {
-  showAlert('chargeAlert', data.error || 'Charge failed.');
-  if (html5QrCode) html5QrCode.resume();
-  return;
-}
-
-  // Update balance
   document.getElementById('currentBalance').textContent = `₵${data.vendor_new_balance}`;
-
-  // Populate receipt
   document.getElementById('receiptAmount').textContent = `₵${total}`;
   document.getElementById('receiptItems').textContent = cart.map(i => `${i.name} x${i.quantity}`).join(' · ');
   document.getElementById('receiptAttendeeName').textContent = currentAttendee.name || 'Unnamed';
