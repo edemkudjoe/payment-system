@@ -7,6 +7,7 @@ let html5QrCode = null;
 let menuItems = [];
 let cart = [];
 let currentAttendee = null;
+let scannerStarted = false;
 
 function saveVendorSession(vendor, event_id) {
   sessionStorage.setItem('vendor', JSON.stringify(vendor));
@@ -86,6 +87,8 @@ function showDashboard() {
 document.getElementById('logoutBtn').addEventListener('click', () => {
   clearVendorSession();
   if (html5QrCode) html5QrCode.stop().catch(() => {});
+  scannerStarted = false;
+  html5QrCode = null;
   document.getElementById('loginSection').style.display = 'block';
   document.getElementById('dashboardSection').style.display = 'none';
   document.getElementById('vendorName').textContent = '';
@@ -97,7 +100,9 @@ document.getElementById('setupModeBtn').addEventListener('click', () => {
   document.getElementById('sellMode').style.display = 'none';
   document.getElementById('setupModeBtn').className = 'btn btn-primary w-auto';
   document.getElementById('sellModeBtn').className = 'btn btn-outline w-auto';
-  if (html5QrCode) html5QrCode.stop().catch(() => {});
+  if (html5QrCode && scannerStarted) {
+    try { html5QrCode.pause(); } catch { /* ignore */ }
+  }
 });
 
 document.getElementById('sellModeBtn').addEventListener('click', () => {
@@ -120,6 +125,8 @@ async function loadBalance() {
   if (!ok) return;
   document.getElementById('currentBalance').textContent = `₵${data.balance}`;
 }
+
+document.getElementById('refreshBalance').addEventListener('click', loadBalance);
 
 // --- Stages ---
 function goToStage(n) {
@@ -147,6 +154,7 @@ function goToStage(n) {
     }
   }
 }
+
 // --- Menu ---
 async function loadMenu() {
   const { ok, data } = await apiFetch(
@@ -313,21 +321,10 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
 
   const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-  // Force DOM query at click time
-  const stage2Summary = document.querySelector('#stage2CartSummary');
-  const chargeBtnAmount = document.querySelector('#chargeBtnAmount');
-  const chargeBtn = document.querySelector('#chargeBtn');
-  const attendeePreview = document.querySelector('#attendeePreview');
-  const chargeQrId = document.querySelector('#chargeQrId');
-
-  console.log('stage2Summary:', stage2Summary);
-  console.log('chargeBtnAmount:', chargeBtnAmount);
-  console.log('chargeBtn:', chargeBtn);
-
-  if (!stage2Summary || !chargeBtnAmount || !chargeBtn) {
-    console.error('Missing element');
-    return;
-  }
+  const stage2Summary = document.getElementById('stage2CartSummary');
+  const chargeBtn = document.getElementById('chargeBtn');
+  const attendeePreview = document.getElementById('attendeePreview');
+  const chargeQrId = document.getElementById('chargeQrId');
 
   stage2Summary.innerHTML = `
     ${cart.map(i => `
@@ -342,7 +339,7 @@ document.getElementById('proceedToScanBtn').addEventListener('click', () => {
     </div>
   `;
 
-  chargeBtnAmount.textContent = `₵${total}`;
+  chargeBtn.innerHTML = `Charge <span id="chargeBtnAmount">₵${total}</span>`;
   chargeBtn.style.display = 'none';
   attendeePreview.style.display = 'none';
   chargeQrId.value = '';
@@ -356,9 +353,6 @@ document.getElementById('backToCartBtn').addEventListener('click', () => {
 });
 
 // --- Scanner ---
-// --- Scanner ---
-let scannerStarted = false;
-
 function initScanner() {
   if (scannerStarted) {
     try {
@@ -397,6 +391,7 @@ function restartScanner() {
     startScanner();
   });
 }
+
 // --- Attendee Lookup ---
 async function lookupAttendee(qr_code_id) {
   const { ok, data } = await apiFetch(`/attendees/qr/${qr_code_id}`);
@@ -415,6 +410,12 @@ async function lookupAttendee(qr_code_id) {
   document.getElementById('attendeePreview').style.display = 'block';
   document.getElementById('chargeBtn').style.display = 'block';
 }
+
+document.getElementById('chargeQrId').addEventListener('change', (e) => {
+  const val = e.target.value.trim();
+  if (val) lookupAttendee(val);
+});
+
 // --- Charge ---
 document.getElementById('chargeBtn').addEventListener('click', async () => {
   if (!currentAttendee) return showAlert('chargeAlert', 'Scan an attendee card first.');
