@@ -85,32 +85,40 @@
     </div>
 
     <!-- Transactions Tab -->
-    <div id="tab-transactions" class="tab-content" style="display:none;">
-      <div class="card" style="margin-bottom: 1rem;">
-        <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
-          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
-            <label>Type</label>
-            <select id="filterType">
-              <option value="">All</option>
-              <option value="top_up">Top Up</option>
-              <option value="payment">Payment</option>
-              <option value="refund">Refund</option>
-              <option value="donation">Donation</option>
-            </select>
-          </div>
-          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
-            <label>From</label>
-            <input type="date" id="filterFrom" />
-          </div>
-          <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
-            <label>To</label>
-            <input type="date" id="filterTo" />
-          </div>
-          <button class="btn btn-primary w-auto" id="filterBtn">Filter</button>
-          <button class="btn btn-outline w-auto" id="exportBtn">Export CSV</button>
-        </div>
-      </div>
-
+    <div class="card" style="margin-bottom: 1rem;">
+  <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+    <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+      <label>Type</label>
+      <select id="filterType">
+        <option value="">All Types</option>
+        <option value="top_up">Top Up</option>
+        <option value="payment">Payment</option>
+        <option value="refund">Refund</option>
+        <option value="donation">Donation</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+      <label>Vendor</label>
+      <select id="filterVendor">
+        <option value="">All Vendors</option>
+      </select>
+    </div>
+    <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+      <label>Attendee QR ID</label>
+      <input type="text" id="filterAttendee" placeholder="QR code ID" autocomplete="off" />
+    </div>
+    <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+      <label>From</label>
+      <input type="date" id="filterFrom" />
+    </div>
+    <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+      <label>To</label>
+      <input type="date" id="filterTo" />
+    </div>
+    <button class="btn btn-primary w-auto" id="filterBtn">Filter</button>
+    <button class="btn btn-outline w-auto" id="exportBtn">Export CSV</button>
+  </div>
+</div>
       <div class="card">
         <div class="table-wrap">
           <table>
