@@ -70,15 +70,20 @@ function initRealtime() {
 }
 
 // --- Transactions ---
+// --- Transactions ---
 async function loadTransactions() {
   const type = document.getElementById('filterType').value;
   const from = document.getElementById('filterFrom').value;
   const to = document.getElementById('filterTo').value;
+  const vendor_id = document.getElementById('filterVendor').value;
+  const attendee_qr = document.getElementById('filterAttendee').value.trim();
 
   const params = new URLSearchParams();
   if (type) params.append('type', type);
   if (from) params.append('from', from);
   if (to) params.append('to', to);
+  if (vendor_id) params.append('vendor_id', vendor_id);
+  if (attendee_qr) params.append('attendee_qr', attendee_qr);
 
   const { ok, data } = await apiFetch(`/events/${event_id}/transactions?${params}`);
   const tbody = document.getElementById('transactionLog');
@@ -112,10 +117,21 @@ document.getElementById('filterBtn').addEventListener('click', loadTransactions)
 
 document.getElementById('exportBtn').addEventListener('click', () => {
   const { token } = getSession();
-  const url = `/api/events/${event_id}/export`;
 
-  // Use fetch to download with auth header
-  fetch(url, {
+  const type = document.getElementById('filterType').value;
+  const from = document.getElementById('filterFrom').value;
+  const to = document.getElementById('filterTo').value;
+  const vendor_id = document.getElementById('filterVendor').value;
+  const attendee_qr = document.getElementById('filterAttendee').value.trim();
+
+  const params = new URLSearchParams();
+  if (type) params.append('type', type);
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+  if (vendor_id) params.append('vendor_id', vendor_id);
+  if (attendee_qr) params.append('attendee_qr', attendee_qr);
+
+  fetch(`/api/events/${event_id}/export?${params}`, {
     headers: { Authorization: `Bearer ${token}` }
   })
     .then(res => {
@@ -131,7 +147,6 @@ document.getElementById('exportBtn').addEventListener('click', () => {
     })
     .catch(() => showAlert('summaryAlert', 'Failed to export transactions.'));
 });
-
 // --- Vendors ---
 async function loadVendors() {
   const { ok, data } = await apiFetch(`/events/${event_id}`);
