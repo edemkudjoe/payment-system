@@ -49,10 +49,16 @@ export async function apiFetch(path, options = {}) {
     body: options.body ? JSON.stringify(options.body) : undefined
   });
 
+  // Auto logout on token expiry
+  if (res.status === 401) {
+    sessionStorage.clear();
+    window.location.href = '/index.html';
+    return { ok: false, status: 401, data: { error: 'Session expired' } };
+  }
+
   const data = await res.json();
   return { ok: res.ok, status: res.status, data };
 }
-
 // Show alert helper
 export function showAlert(id, message, type = 'error') {
   const el = document.getElementById(id);
