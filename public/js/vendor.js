@@ -341,7 +341,17 @@ document.getElementById('backToCartBtn').addEventListener('click', () => {
 // --- Scanner ---
 function initScanner() {
   if (html5QrCode) {
-    html5QrCode.stop().catch(() => {}).then(() => startScanner());
+    try {
+      html5QrCode.stop()
+        .catch(() => {})
+        .finally(() => {
+          html5QrCode = new Html5Qrcode('qrScanner');
+          startScanner();
+        });
+    } catch {
+      html5QrCode = new Html5Qrcode('qrScanner');
+      startScanner();
+    }
   } else {
     html5QrCode = new Html5Qrcode('qrScanner');
     startScanner();
