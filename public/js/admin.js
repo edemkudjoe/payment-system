@@ -153,9 +153,17 @@ async function loadVendors() {
   if (!ok) return;
 
   // Populate vendor filter dropdown
+  // Populate vendor filter dropdown
   const filterVendor = document.getElementById('filterVendor');
   filterVendor.innerHTML = '<option value="">All Vendors</option>' +
     data.vendors.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+
+  // Populate settlement vendor dropdown
+  const settleVendorSelect = document.getElementById('settleVendorSelect');
+  const previouslySelected = settleVendorSelect.value;
+  settleVendorSelect.innerHTML = '<option value="">Select a vendor</option>' +
+    data.vendors.map(v => `<option value="${v.id}" data-balance="${v.balance}">${v.name} (₵${v.balance})</option>`).join('');
+  if (previouslySelected) settleVendorSelect.value = previouslySelected;
 
   const tbody = document.getElementById('vendorList');
   tbody.innerHTML = data.vendors.length
@@ -166,6 +174,9 @@ async function loadVendors() {
           <td>${v.description || '—'}</td>
           <td>₵${v.balance}</td>
           <td>
+            <button class="btn btn-primary w-auto" style="padding: 0.3rem 0.75rem; font-size: 0.8rem; margin-right: 0.4rem;" onclick="goToSettle('${v.id}', ${v.balance})">
+              Settle
+            </button>
             <button class="btn btn-danger w-auto" style="padding: 0.3rem 0.75rem; font-size: 0.8rem;" onclick="deleteVendor('${v.id}', '${v.name}')">
               Delete
             </button>
@@ -201,6 +212,66 @@ document.getElementById('addVendorBtn').addEventListener('click', async () => {
   document.getElementById('vendorCode').value = '';
   document.getElementById('vendorPin').value = '';
   loadVendors();
+});
+
+// --- Settlements ---
+async function loadSettlements() {
+  const { ok, data } = await apiFetch(`/events/${event_id}/settlements`);
+  const tbody = document.getElementById('settlementList');
+
+  if (!ok) {
+    tbody.innerHTML = '<tr><td colspan="4" class="text-muted">Failed to load</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = data.length
+    ? data.map(s => `
+        <tr>
+          <td>${s.vendors?.name || '—'}</td>
+          <td>₵${s.amount}</td>
+          <td>${s.staff?.name || '—'}</td>
+          <td>${new Date(s.created_at).toLocaleString()}</td>
+        </tr>`).join('')
+    : '<tr><td colspan="4" class="text-muted">No settlements yet</td></tr>';
+}
+
+window.goToSettle = (vendorId, balance) => {
+  document.querySelector('.tab-btn[data-tab="settlements"]').click();
+  document.getElementById('settleVendorSelect').value = vendorId;
+  document.getElementById('settleAmount').value = balance;
+};
+
+document.getElementById('settleBtn').addEventListener('click', async () => {
+  const vendor_id = document.getElementById('settleVendorSelect').value;
+  const amount = parseInt(document.getElementById('settleAmount').value);
+
+  if (!vendor_id) return showAlert('settlementAlert', 'Select a vendor.');
+  if (!amount || amount <= 0) return showAlert('settlementAlert', 'Enter an amount greater than 0.');
+
+  const option = document.querySelector(`#settleVendorSelect option[value="${vendor_id}"]`);
+  const balance = parseInt(option?.dataset.balance || 0);
+  if (amount > balance) return showAlert('settlementAlert', `Amount exceeds vendor's balance of ₵${balance}.`);
+
+  const confirmed = confirm(`Settle ₵${amount} for this vendor? This cannot be undone.`);
+  if (!confirmed) return;
+
+  const btn = document.getElementById('settleBtn');
+  btn.disabled = true;
+
+  const { ok, data } = await apiFetch(`/vendors/${vendor_id}/settle`, {
+    method: 'POST',
+    body: { amount }
+  });
+
+  btn.disabled = false;
+
+  if (!ok) return showAlert('settlementAlert', data.error || 'Failed to settle vendor.');
+
+  showAlert('settlementAlert', `Settled successfully. New balance: ₵${data.new_balance}.`, 'success');
+  document.getElementById('settleAmount').value = '';
+  loadVendors();
+  loadSettlements();
+  loadSummary();
 });
 
 // --- Staff ---
@@ -392,6 +463,7 @@ document.getElementById('deleteAllBtn').addEventListener('click', async () => {
   loadSummary();
   loadTransactions();
   loadVendors();
+  loadSettlements();
   loadStaff();
 });
 
@@ -399,5 +471,6 @@ document.getElementById('deleteAllBtn').addEventListener('click', async () => {
 loadSummary();
 loadTransactions();
 loadVendors();
+loadSettlements();
 loadStaff();
 initRealtime();
