@@ -22,6 +22,7 @@
       <button class="btn btn-primary w-auto tab-btn" data-tab="summary">Summary</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="transactions">Transactions</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="vendors">Vendors</button>
+      <button class="btn btn-outline w-auto tab-btn" data-tab="settlements">Settlements</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="staff">Staff</button>
       <button class="btn btn-outline w-auto tab-btn" data-tab="cards">Cards</button>
     </div>
@@ -85,6 +86,7 @@
     </div>
 
     <!-- Transactions Tab -->
+    <div id="tab-transactions" class="tab-content" style="display:none;">
     <div class="card" style="margin-bottom: 1rem;">
   <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
     <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
@@ -174,7 +176,7 @@
                 <th>Code</th>
                 <th>Description</th>
                 <th>Balance</th>
-                <th>Actions</th>
+                <th style="min-width: 160px;">Actions</th>
               </tr>
             </thead>
             <tbody id="vendorList">
@@ -185,6 +187,49 @@
       </div>
     </div>
 
+    <!-- Settlements Tab -->
+<div id="tab-settlements" class="tab-content" style="display:none;">
+  <div class="card" style="margin-bottom: 1rem;">
+    <div class="card-title">Settle a Vendor</div>
+    <div id="settlementAlert" class="alert alert-error"></div>
+    <p class="text-muted" style="margin-bottom: 1rem; font-size: 0.875rem;">
+      Pay a vendor cash for their accumulated token balance, then mark it settled here. You can settle a vendor's full balance or a partial amount.
+    </p>
+    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; align-items: flex-end;">
+      <div class="form-group" style="margin: 0; flex: 1; min-width: 160px;">
+        <label>Vendor</label>
+        <select id="settleVendorSelect">
+          <option value="">Select a vendor</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin: 0; flex: 1; min-width: 140px;">
+        <label>Amount (₵)</label>
+        <input type="number" id="settleAmount" placeholder="e.g. 250" min="1" />
+      </div>
+      <button class="btn btn-primary w-auto" id="settleBtn">Settle</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Settlement History</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Vendor</th>
+            <th>Amount</th>
+            <th>Settled By</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody id="settlementList">
+          <tr><td colspan="4" class="text-muted">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+    
     <!-- Staff Tab -->
     <div id="tab-staff" class="tab-content" style="display:none;">
       <div class="card" style="margin-bottom: 1rem;">
