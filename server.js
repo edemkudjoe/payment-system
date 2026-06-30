@@ -867,6 +867,61 @@ app.get('/api/events/:id/settlements', authenticate(['admin', 'manager']), async
 
   return res.status(200).json(data);
 });
+
+// Staff: change own PIN (requires current PIN)
+app.post('/api/staff/change-pin', authenticate(), async (req, res) => {
+  const { current_pin, new_pin } = req.body;
+
+  if (!current_pin || !new_pin) {
+    return res.status(400).json({ error: 'current_pin and new_pin are required' });
+  }
+  if (new_pin.length < 4) {
+    return res.status(400).json({ error: 'New PIN must be at least 4 digits' });
+  }
+
+  const { data: staffRow, error: fetchError } = await supabase
+    .from('staff')
+    .select('pin')
+    .eq('id', req.staff.staff_id)
+    .single();
+
+  if (fetchError || !staffRow) return res.status(404).json({ error: 'Staff not found' });
+
+  const pinMatch = await bcrypt.compare(current_pin, staffRow.pin);
+  if (!pinMatch) return res.status(401).json({ error: 'Current PIN is incorrect' });
+
+  const hashedPin = await bcrypt.hash(new_pin, 10);
+
+  const { error } = await supabase
+    .from('staff')
+    .update({ pin: hashedPin })
+    .eq('id', req.staff.staff_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'PIN updated successfully' });
+});
+
+// Admin: reset a staff member's PIN (no current PIN needed)
+app.post('/api/staff/:id/reset-pin', authenticate(['admin']), async (req, res) => {
+  const { new_pin } = req.body;
+
+  if (!new_pin || new_pin.length < 4) {
+    return res.status(400).json({ error: 'A new PIN of at least 4 digits is required' });
+  }
+
+  const hashedPin = await bcrypt.hash(new_pin, 10);
+
+  const { error } = await supabase
+    .from('staff')
+    .update({ pin: hashedPin })
+    .eq('id', req.params.id)
+    .eq('event_id', req.staff.event_id);
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json({ message: 'PIN reset successfully' });
+});
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
