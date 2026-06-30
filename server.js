@@ -823,6 +823,50 @@ app.get('/api/events/:id/export', authenticate(['admin', 'manager']), async (req
   res.setHeader('Content-Disposition', `attachment; filename="transactions-${id}.csv"`);
   return res.send(csv);
 });
+
+// Settle a vendor's balance
+app.post('/api/vendors/:id/settle', authenticate(['admin', 'manager']), async (req, res) => {
+  const { amount } = req.body;
+
+  if (!amount || amount <= 0) {
+    return res.status(400).json({ error: 'Amount must be greater than 0' });
+  }
+
+  const { data, error } = await supabase.rpc('process_settlement', {
+    p_event_id: req.staff.event_id,
+    p_vendor_id: req.params.id,
+    p_amount: amount,
+    p_staff_id: req.staff.staff_id
+  });
+
+  if (error) return res.status(500).json({ error: error.message });
+  if (data.error) return res.status(400).json({ error: data.error });
+
+  return res.status(200).json({ message: 'Settlement successful', new_balance: data.new_balance });
+});
+
+// Get settlement history for an event
+app.get('/api/events/:id/settlements', authenticate(['admin', 'manager']), async (req, res) => {
+  const { id } = req.params;
+
+  if (req.staff.event_id !== id) {
+    return res.status(403).json({ error: 'Access denied' });
+  }
+
+  const { data, error } = await supabase
+    .from('settlements')
+    .select(`
+      id, amount, created_at,
+      vendors ( name ),
+      staff:settled_by ( name )
+    `)
+    .eq('event_id', id)
+    .order('created_at', { ascending: false });
+
+  if (error) return res.status(500).json({ error: error.message });
+
+  return res.status(200).json(data);
+});
 // ─── Start ────────────────────────────────────────────────────────────────────
 
 const PORT = process.env.PORT || 3000;
